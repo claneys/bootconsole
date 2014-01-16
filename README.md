@@ -1,5 +1,4 @@
-
-TurnKey Linux Configuration Console
+Syleps Linux Configuration Console
 ===================================
 
 The Configuration Console's objective is to provide the user with basic
@@ -9,11 +8,13 @@ tasks, so as not to force the user to the command line.
 The information provided includes:
     - The binded IP address
     - The listening services the user may connect to over the network
+    - Version of core appliance software like Oracle database, application server...
+    - Serial Number of appliances matching 3 servers database, application server and SUPrintServer
 
 The basic tasks that the user may perform include:
     - Setting a static IP address
     - Requesting DHCP
-    - Installing the system to the hard disk (if live)
+    - Set /etc/hosts entries about appliance's servers
     - Rebooting the appliance
     - Shutting down the appliance
 
@@ -26,5 +27,3 @@ its init script) unless the boot paramater 'noconfconsole' is present
 on /proc/cmdline. 
 
 The Configuration Console (confconsole) may be executed manually aswell.
-
-

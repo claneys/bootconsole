@@ -1,24 +1,28 @@
 # Copyright (c) 2008 Alon Swartz <alon@turnkeylinux.org> - all rights reserved
+# Modified and adapted by Romain Forlot.
+# Copyright (c) 2014 Romain Forlot <romain.forlot@syleps.fr> - all rights reserved
 
 import os
 
 import executil
-from netinfo import InterfaceInfo
+import netinfo
 
 class Error(Exception):
     pass
 
-class EtcNetworkInterfaces:
-    """class for controlling /etc/network/interfaces
+class NetworkSettings:
+    """class for controlling /etc/sysconfig/network-scripts/ifcfg-ethX
 
     An error will be raised if the interfaces file does not include the
-    header: # UNCONFIGURED INTERFACES (in other words, we will not override
+    header: # SYLEPS INTERFACES (in other words, we will not override
     any customizations)
     """
 
-    CONF_FILE='/etc/network/interfaces'
-    HEADER_UNCONFIGURED = "# UNCONFIGURED INTERFACES"
-
+    IFCFG_FILE='/etc/sysconfig/network-scripts/ifcfg-eth0'
+    NETWORK_FILE='/etc/sysconfig/network'
+    RESOLV_FILE='/etc/resolv.conf'
+    HEADER_SYLEPS = "# SYLEPS CONFCONSOLE\n"
+    WARN_SYLEPS = "# Don't modify this part !\n"
     def __init__(self):
         self.read_conf()
 
@@ -27,17 +31,17 @@ class EtcNetworkInterfaces:
         self.unconfigured = False
 
         ifname = None
-        for line in file(self.CONF_FILE).readlines():
+        for line in file(self.IFCFG_FILE).readlines():
             line = line.rstrip()
 
-            if line == self.HEADER_UNCONFIGURED:
+            if line == self.HEADER_SYLEPS:
                 self.unconfigured = True
 
             if not line or line.startswith("#"):
                 continue
 
-            if line.startswith("auto"):
-                ifname = line.split()[1]
+            if line.startswith("DEVICE"):
+                ifname = line.split('=')[1]
                 self.conf[ifname] = line + "\n"
             elif ifname:
                 self.conf[ifname] += line + "\n"
@@ -56,60 +60,58 @@ class EtcNetworkInterfaces:
         self.read_conf()
         if not self.unconfigured:
             raise Error("refusing to write to %s\nheader not found: %s" %
-                        (self.CONF_FILE, self.HEADER_UNCONFIGURED))
+                        (self.IFCFG_FILE, self.HEADER_SYLEPS))
 
-        # carry over previously defined interface options
-        ifconf += "\n" + "\n".join([ "    " + opt
-                                   for opt in self._get_iface_opts(ifname) ])
-
-        fh = file(self.CONF_FILE, "w")
-        print >> fh, self.HEADER_UNCONFIGURED
-        print >> fh, "# remove the above line if you edit this file"
-        print >> fh
-        print >> fh, "auto lo"
-        print >> fh, "iface lo inet loopback"
-        print >> fh
-
-        print >> fh, ifconf
-
-        for c in self.conf:
-            if c in ('lo', ifname):
-                continue
-
-            print >> fh, self.conf[c]
+        FILE = { "eth0" : self.IFCFG_FILE, "net" : self.NETWORK_FILE, "resolv" : self.RESOLV_FILE}[ifname]
+        fh = file(FILE, "w")
+        fh.write(self.HEADER_SYLEPS)
+        fh.write(self.WARN_SYLEPS)
+        fh.write("\n")
+        fh.write(ifconf)
 
         fh.close()
 
     def set_dhcp(self, ifname):
-        ifconf = "auto %s\niface %s inet dhcp" % (ifname, ifname)
+        ifconf = "DEVICE=%s\nBOOTPROTO=dhcp\nONBOOT=yes" % (ifname)
         self.write_conf(ifname, ifconf)
 
     def set_manual(self, ifname):
         ifconf = "auto %s\niface %s inet manual" % (ifname, ifname)
         self.write_conf(ifname, ifconf)
 
-    def set_static(self, ifname, addr, netmask, gateway=None, nameservers=[]):
-        ifconf = ["auto %s" % ifname,
-                  "iface %s inet static" % ifname,
-                  "    address %s" % addr,
-                  "    netmask %s" % netmask]
+    def set_static(self, ifname, addr, netmask, gateway=None, nameservers=[], hostname=None):
+        ifconf = ["DEVICE=%s" % ifname,
+                  "BOOTPROTO=none",
+                  "IPADDR=%s" % addr,
+                  "NETMASK=%s" % netmask,
+                  "ONBOOT=yes"]
 
+        networkconf = ["NETWORKING=yes"]
         if gateway:
-            ifconf.append("    gateway %s" % gateway)
+            networkconf.append("GATEWAY=%s" % gateway)
 
+        if hostname:
+            networkconf.append("HOSTNAME=%s" % hostname)
+
+        resolvconf = []
         if nameservers:
-            ifconf.append("    dns-nameservers %s" % " ".join(nameservers))
+            for nameserver in nameservers:
+                resolvconf.append("nameserver %s" % nameserver)
 
         ifconf = "\n".join(ifconf)
+        networkconf = "\n".join(networkconf)
+        resolvconf = "\n".join(resolvconf)
         self.write_conf(ifname, ifconf)
+        self.write_conf('net', networkconf)
+        self.write_conf('resolv', resolvconf)
 
-class EtcNetworkInterface:
+class NetworkInterface:
     """enumerate interface information from /etc/network/interfaces"""
 
     def __init__(self, ifname):
         self.ifname = ifname
 
-        interfaces = EtcNetworkInterfaces()
+        interfaces = NetworkSettings()
 
         self.conflines = []
         if ifname in interfaces.conf:
@@ -118,7 +120,7 @@ class EtcNetworkInterface:
     def _parse_attr(self, attr):
         for line in self.conflines:
 
-            vals = line.strip().split()
+            vals = line.strip().split('=')
             if not vals:
                 continue
 
@@ -127,14 +129,18 @@ class EtcNetworkInterface:
 
         return []
 
-    @property
+    #property
     def method(self):
         try:
-            return self._parse_attr('iface')[3]
+            return self._parse_attr('BOOTPROTO')[1]
         except IndexError:
             return
 
-    @property
+    #property
+    def macaddr(self):
+        return self._parse_attr('HWADDR')[1]
+
+    #property
     def dns_nameservers(self):
         return self._parse_attr('dns-nameservers')[1:]
 
@@ -153,9 +159,9 @@ class EtcNetworkInterface:
 
 def get_nameservers(ifname):
     #/etc/network/interfaces (static)
-    interface = EtcNetworkInterface(ifname)
-    if interface.dns_nameservers:
-        return interface.dns_nameservers
+    #interface = NetworkInterface(ifname)
+    #if interface.dns_nameservers:
+    #    return interface.dns_nameservers
 
     def parse_resolv(path):
         nameservers = []
@@ -164,18 +170,19 @@ def get_nameservers(ifname):
                 nameservers.append(line.strip().split()[1])
         return nameservers
 
+    #Debian relative
     #resolvconf (dhcp)
-    path = '/etc/resolvconf/run/interface'
-    if os.path.exists(path):
-        for f in os.listdir(path):
-            if not f.startswith(ifname) or f.endswith('.inet'):
-                continue
+    #path = '/etc/resolvconf/run/interface'
+    #if os.path.exists(path):
+    #    for f in os.listdir(path):
+    #        if not f.startswith(ifname) or f.endswith('.inet'):
+    #            continue
 
-            nameservers = parse_resolv(os.path.join(path, f))
-            if nameservers:
-                return nameservers
+    #        nameservers = parse_resolv(os.path.join(path, f))
+    #        if nameservers:
+    #            return nameservers
 
-    #/etc/resolv.conf (fallback)
+    #/etc/resolv.conf
     nameservers = parse_resolv('/etc/resolv.conf')
     if nameservers:
         return nameservers
@@ -191,21 +198,21 @@ def ifdown(ifname):
 def unconfigure_if(ifname):
     try:
         ifdown(ifname)
-        interfaces = EtcNetworkInterfaces()
+        interfaces = NetworkSettings()
         interfaces.set_manual(ifname)
         executil.system("ifconfig %s 0.0.0.0" % ifname)
         ifup(ifname)
     except Exception, e:
         return str(e)
 
-def set_static(ifname, addr, netmask, gateway, nameservers):
+def set_static(ifname, addr, netmask, gateway, nameservers, hostname):
     try:
         ifdown(ifname)
-        interfaces = EtcNetworkInterfaces()
-        interfaces.set_static(ifname, addr, netmask, gateway, nameservers)
+        interfaces = NetworkSettings()
+        interfaces.set_static(ifname, addr, netmask, gateway, nameservers, hostname)
         output = ifup(ifname)
 
-        net = InterfaceInfo(ifname)
+        net = netinfo.InterfaceInfo(ifname)
         if not net.addr:
             raise Error('Error obtaining IP address\n\n%s' % output)
 
@@ -215,11 +222,11 @@ def set_static(ifname, addr, netmask, gateway, nameservers):
 def set_dhcp(ifname):
     try:
         ifdown(ifname)
-        interfaces = EtcNetworkInterfaces()
+        interfaces = NetworkSettings()
         interfaces.set_dhcp(ifname)
         output = ifup(ifname)
 
-        net = InterfaceInfo(ifname)
+        net = netinfo.InterfaceInfo(ifname)
         if not net.addr:
             raise Error('Error obtaining IP address\n\n%s' % output)
 
@@ -227,10 +234,16 @@ def set_dhcp(ifname):
         return str(e)
 
 def get_ipconf(ifname):
-    net = InterfaceInfo(ifname)
+    net = netinfo.InterfaceInfo(ifname)
     return net.addr, net.netmask, net.gateway, get_nameservers(ifname)
 
 def get_ifmethod(ifname):
-    interface = EtcNetworkInterface(ifname)
+    interface = NetworkInterface(ifname)
     return interface.method
 
+def get_ifmacaddr(ifname):
+    interface = NetworkInterface(ifname)
+    return interface.macaddr
+
+def get_shortname(hostname):
+    return hostname.split(".", 1)[0]

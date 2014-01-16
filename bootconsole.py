@@ -1,6 +1,9 @@
 #!/usr/bin/python
 # Copyright (c) 2008 Alon Swartz <alon@turnkeylinux.org> - all rights reserved
-"""TurnKey Configuration Console
+# Modified and adapted by Romain Forlot.
+# Copyright (c) 2014 Romain Forlot <romain.forlot@syleps.fr> - all rights reserved
+
+"""Syleps Configuration Console
 
 Options:
     --usage         Display usage screen without Advanced Menu
@@ -8,6 +11,7 @@ Options:
 """
 
 import os
+import re
 import sys
 import dialog
 import ipaddr
@@ -36,6 +40,16 @@ def usage(e=None):
     print >> sys.stderr, "Syntax: %s" % (sys.argv[0])
     print >> sys.stderr, __doc__.strip()
     sys.exit(1)
+
+def get_ip_or_hostname_from_alias(alias, hosts_conf, ip_or_hostname='hostname'):
+    for k,v in hosts_conf.param.items():
+        if alias in v:
+            if ip_or_hostname == "hostname":
+                return hosts_conf.param[k][0]
+            elif ip_or_hostname == "ip":
+                return k
+            else:
+                raise Error("Wrong parameter provided. Must be 'hostname' or 'ip'")
 
 class Console:
     def __init__(self, title=None, width=60, height=20):
@@ -122,23 +136,24 @@ class Installer:
 
         executil.system(self.path)
 
-class TurnkeyConsole:
+class SylepsConsole:
     OK = 0
     CANCEL = 1
-
+    config = conf.Conf("bootconsole.conf")
+    
     def __init__(self, advanced_enabled=True):
-        title = "TurnKey Linux Configuration Console"
-        self.width = 60
-        self.height = 20
+        title = "Syleps Linux Configuration Console"
+        self.width = 75
+        self.height = 22
 
         self.console = Console(title, self.width, self.height)
-        self.appname = "TurnKey Linux %s" % netinfo.get_hostname().upper()
+        self.appname = "Syleps Linux %s" % netinfo.get_hostname().upper()
 
         self.installer = Installer(path='/usr/bin/di-live')
 
         self.advanced_enabled = advanced_enabled
 
-    @staticmethod
+    #staticmethod
     def _get_filtered_ifnames():
         ifnames = []
         for ifname in netinfo.get_ifnames():
@@ -149,19 +164,19 @@ class TurnkeyConsole:
         ifnames.sort()
         return ifnames
 
-    @classmethod
-    def _get_default_nic(cls):
+    #classmethod
+    def _get_default_nic(self):
         def _validip(ifname):
             ip = ifutil.get_ipconf(ifname)[0]
             if ip and not ip.startswith('169'):
                 return True
             return False
 
-        ifname = conf.Conf().default_nic
+        ifname = self.config.param['default_nic']
         if ifname and _validip(ifname):
             return ifname
 
-        for ifname in cls._get_filtered_ifnames():
+        for ifname in self._get_filtered_ifnames():
             if _validip(ifname):
                 return ifname
 
@@ -170,6 +185,7 @@ class TurnkeyConsole:
     def _get_advmenu(self):
         items = []
         items.append(("Networking", "Configure appliance networking"))
+        items.append(("Hosts", "Configure /etc/hosts and hostname settings"))
 
         if self.installer.available:
             items.append(("Install", "Install to hard disk"))
@@ -234,70 +250,6 @@ class TurnkeyConsole:
                 text += "no\n"
 
         return text
-
-    def usage(self):
-        if self.advanced_enabled:
-            default_button_label = "Advanced Menu"
-            default_return_value = "advanced"
-        else:
-            default_button_label = "Quit"
-            default_return_value = "quit"
-
-        #if no interfaces at all - display error and go to advanced
-        if len(self._get_filtered_ifnames()) == 0:
-            error = "No network adapters detected"
-            if not self.advanced_enabled:
-                fatal(error)
-
-            self.console.msgbox("Error", error)
-            return "advanced"
-
-        #if interfaces but no default - display error and go to networking
-        ifname = self._get_default_nic()
-        if not ifname:
-            error = "Networking is not yet configured"
-            if not self.advanced_enabled:
-                fatal(error)
-
-            self.console.msgbox("Error", error)
-            return "networking"
-
-        #tklbam integration
-        try:
-            tklbam_status = executil.getoutput("tklbam-status --short")
-        except executil.ExecError, e:
-            if e.exitcode in (10, 11): #not initialized, no backups
-                tklbam_status = e.output
-            else:
-                tklbam_status = ''
-
-        #display usage
-        ipaddr = ifutil.get_ipconf(ifname)[0]
-        hostname = netinfo.get_hostname().upper()
-
-        try:
-            #backwards compatible - use usage.txt if it exists
-            t = file(conf.path("usage.txt"), 'r').read()
-            text = Template(t).substitute(hostname=hostname, ipaddr=ipaddr)
-
-            retcode = self.console.msgbox("Usage", text,
-                                          button_label=default_button_label)
-        except conf.Error:
-            t = file(conf.path("services.txt"), 'r').read().rstrip()
-            text = Template(t).substitute(ipaddr=ipaddr)
-
-            text += "\n\n%s\n\n" % tklbam_status
-            text += "\n" * (self.height - len(text.splitlines()) - 7)
-            text += "         TurnKey Backups and Cloud Deployment\n"
-            text += "             https://hub.turnkeylinux.org"
-
-            retcode = self.console.msgbox("%s appliance services" % hostname,
-                                          text, button_label=default_button_label)
-
-        if retcode is not self.OK:
-            self.running = False
-
-        return default_return_value
 
     def advanced(self):
         #dont display cancel button when no interfaces at all
@@ -439,7 +391,7 @@ class TurnkeyConsole:
                 err = "\n".join(err)
             else:
                 err = ifutil.set_static(self.ifname, addr, netmask,
-                                        gateway, nameservers)
+                                        gateway, nameservers, netinfo.get_hostname())
                 if not err:
                     break
 
@@ -456,8 +408,91 @@ class TurnkeyConsole:
         return "ifconf"
 
     def _ifconf_default(self):
-        conf.Conf().set_default_nic(self.ifname)
+        self.config.set_default_nic(self.ifname)
         return "ifconf"
+
+    def _adv_hosts(self):
+        def _validate(hostname, peer_hostname, sups_hostname, peer_ip, sups_ip):
+            errors = []
+            if not peer_ip or not sups_ip:
+                errors.append("IP address missing")
+            elif not ipaddr.is_legal_ip(peer_ip) or not ipaddr.is_legal_ip(sups_ip):
+                errors.append("Invalid IP address")
+
+            if re.search("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$", hostname) == None:
+                errors.append('Hostname not compliant. It must be the FQDN of the host')
+
+            if re.search("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$", peer_hostname) == None:
+                errors.append('Hostname not compliant. It must be the FQDN of the host')
+
+            if re.search("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$", sups_hostname) == None:
+                errors.append('Hostname not compliant. It must be the FQDN of the host')
+
+            if errors:
+                return errors
+
+            return []
+
+        alias = self.config.param['alias']
+        hosts_conf = conf.Conf("hosts")
+        ifname = self._get_default_nic()
+        input = [None, None, None, None, None] 
+        input[0] = netinfo.get_hostname()
+        
+        if alias == 'ofm11g':
+            label_peer_hostname = "DB Hostname"
+            input[1] = get_ip_or_hostname_from_alias('oradb11g', hosts_conf, 'hostname')
+            label_peer_ip = "DB IP address"
+            input[3] = get_ip_or_hostname_from_alias('oradb11g', hosts_conf, 'ip')
+        else:
+            label_peer_hostname = "AS Hostname"
+            input[1] = get_ip_or_hostname_from_alias('ofm11g', hosts_conf, 'hostname')
+            label_peer_ip = "AS IP address"
+            input[3] = get_ip_or_hostname_from_alias('ofm11g', hosts_conf, 'ip')
+
+        input[2] = get_ip_or_hostname_from_alias('sups', hosts_conf, 'hostname')
+        input[4] = get_ip_or_hostname_from_alias('sups', hosts_conf, 'ip')
+
+        field_width = 50
+        field_limit = 50
+
+        while 1:
+            fields = [
+                ("Hostname of this server", input[0], field_width, field_limit),
+                (label_peer_hostname, input[1], field_width, field_limit),
+                ("SUPrintServer Hostname", input[2], field_width, field_limit),
+                (label_peer_ip, input[3], field_width, field_limit),
+                ("SUPrintServer IP address", input[4], field_width, field_limit)
+            ]
+
+            text = "Set /etc/hosts entries (Must be FQDN)"
+            retcode, input = self.console.form("Hosts settings", text, fields)
+
+            if retcode is not self.OK:
+                break
+
+            # remove any whitespaces the user might of included
+            for i in range(len(input)):
+                input[i] = input[i].strip()
+            
+            ip = ifutil.get_ipconf(ifname)[0]
+            hostname = input[0]
+            peer_hostname = input[1]
+            sups_hostname = input[2]
+            peer_ip = input[3]
+            sups_ip = input[4]
+
+            err = _validate(hostname, peer_hostname, sups_hostname, peer_ip, sups_ip)
+            if err:
+                err = "\n".join(err)
+            else:
+                err = hosts_conf.set_hosts(ip, hostname, peer_hostname, sups_hostname, peer_ip, sups_ip, alias)
+                if not err:
+                    break
+
+            self.console.msgbox("Error", err)
+
+        return "advanced"
 
     def _adv_install(self):
         text = "Please note that any changes you may have made to the\n"
@@ -485,7 +520,10 @@ class TurnkeyConsole:
         return self._shutdown("Shutdown the appliance?", "-h")
 
     def _adv_quit(self):
-        default_return_value = "advanced" if self.advanced_enabled else "usage"
+        if self.advanced_enabled:
+            default_return_value = "advanced" ;
+        else:
+            'usage'
 
         if self.console.yesno("Do you really want to quit?") == self.OK:
             self.running = False
@@ -517,6 +555,53 @@ class TurnkeyConsole:
                 self.console.msgbox("Caught exception", sio.getvalue())
                 dialog = prev_dialog
 
+    def usage(self):
+        if self.advanced_enabled:
+            default_button_label = "Advanced Menu"
+            default_return_value = "advanced"
+        else:
+            default_button_label = "Quit"
+            default_return_value = "quit"
+
+        #if no interfaces at all - display error and go to advanced
+        if len(self._get_filtered_ifnames()) == 0:
+            error = "No network adapters detected"
+            if not self.advanced_enabled:
+                fatal(error)
+
+            self.console.msgbox("Error", error)
+            return "advanced"
+
+        #if interfaces but no default - display error and go to networking
+        ifname = self._get_default_nic()
+        if not ifname:
+            error = "Networking is not yet configured"
+            if not self.advanced_enabled:
+                fatal(error)
+
+            self.console.msgbox("Error", error)
+            return "networking"
+
+        #display usage
+        ipaddr = ifutil.get_ipconf(ifname)[0]
+        hostname = netinfo.get_hostname()
+
+        #backwards compatible - use usage.txt if it exists
+        t = file(conf.path("usage.txt"), 'r').read()
+        text = Template(t).substitute(hostname=hostname, ipaddr=ipaddr)
+
+        text += "\n" * (self.height - len(text.splitlines()) - 7)
+        text += "                  Syleps SU Appliance\n"
+        text += "                  https://www.syleps.com"
+
+        retcode = self.console.msgbox("Sydel Univers appliance services",
+                                      text, button_label=default_button_label)
+
+        if retcode is not self.OK:
+            self.running = False
+
+        return default_return_value
+
 def main():
     advanced_enabled = True
 
@@ -528,10 +613,10 @@ def main():
             usage()
 
     if os.geteuid() != 0:
-        fatal("confconsole needs root privileges to run")
+        fatal("bootconsole needs root privileges to run")
 
-    tc = TurnkeyConsole(advanced_enabled)
-    tc.loop()
+    sc = SylepsConsole(advanced_enabled)
+    sc.loop()
 
 if __name__ == "__main__":
     main()

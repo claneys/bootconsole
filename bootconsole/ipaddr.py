@@ -65,7 +65,7 @@ class IP(long):
     __or__ = _numeric_method("__or__")
 
 class IPRange:
-    @classmethod
+    #classmethod
     def from_cidr(cls, arg):
         address, cidr = arg.split('/')
         netmask = 2 ** 32 - (2 ** (32 - int(cidr)))
