@@ -5,6 +5,7 @@
 import re
 import os
 import executil
+import ifutil
 import ipaddr
 
 class Error(Exception):
@@ -55,7 +56,7 @@ class Conf:
                 peer_alias = "ofm11g"
             sups_alias = "sups"
 
-            ifutils.NetworkSettings().set_hostname(hostname)
+            ifutil.NetworkSettings().set_hostname(hostname)
 
             original_content = []
             is_custom = False
