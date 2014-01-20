@@ -103,16 +103,16 @@ class InterfaceInfo(object):
         flags = struct.unpack('H', result[16:18])[0]
         return (flags & magic) != 0
 
-    #property
+    @property
     def address(self):
         return self._get_ioctl_addr(SIOCGIFADDR)
     addr = address
 
-    #property
+    @property
     def netmask(self):
         return self._get_ioctl_addr(SIOCGIFNETMASK)
 
-    #property
+    @property
     def gateway(self):
         try:
             output = executil.getoutput("route -n")

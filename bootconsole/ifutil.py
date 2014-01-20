@@ -129,18 +129,18 @@ class NetworkInterface:
 
         return []
 
-    #property
+    @property
     def method(self):
         try:
             return self._parse_attr('BOOTPROTO')[1]
         except IndexError:
             return
 
-    #property
+    @property
     def macaddr(self):
         return self._parse_attr('HWADDR')[1]
 
-    #property
+    @property
     def dns_nameservers(self):
         return self._parse_attr('dns-nameservers')[1:]
 

@@ -151,8 +151,8 @@ class SylepsConsole:
 
         self.advanced_enabled = advanced_enabled
 
-    #staticmethod
-    def _get_filtered_ifnames():
+    @staticmethod
+    def _get_filtered_ifnames(self):
         ifnames = []
         for ifname in netinfo.get_ifnames():
             if ifname.startswith(('lo', 'tap', 'br', 'tun', 'vmnet', 'wmaster')):
@@ -162,7 +162,7 @@ class SylepsConsole:
         ifnames.sort()
         return ifnames
 
-    #classmethod
+    @classmethod
     def _get_default_nic(self):
         def _validip(ifname):
             ip = ifutil.get_ipconf(ifname)[0]
