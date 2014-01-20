@@ -23,6 +23,7 @@ import bootconsole.netinfo as netinfo
 import bootconsole.executil as executil
 import bootconsole.conf as conf
 
+os.environ['TERM'] = 'xterm'
 
 class Error(Exception):
     pass

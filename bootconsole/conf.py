@@ -12,7 +12,7 @@ class Error(Exception):
     pass
 
 def path(filename):
-    for dir in ("/etc", "conf", "/etc/confconsole"):
+    for dir in ("/etc", "conf", "/etc/bootconsole"):
         path = os.path.join(dir, filename)
         if os.path.exists(path):
             return path
