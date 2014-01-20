@@ -155,9 +155,12 @@ class SylepsConsole:
     def _get_filtered_ifnames(self):
         ifnames = []
         for ifname in netinfo.get_ifnames():
-            if ifname.startswith(('lo', 'tap', 'br', 'tun', 'vmnet', 'wmaster')):
-                continue
-            ifnames.append(ifname)
+            is_ok = True
+            for elt in ('lo', 'tap', 'br', 'tun', 'vmnet', 'wmaster'):
+                if ifname.startswith(elt):
+                    is_ok = False
+            if is_ok == True:
+                ifnames.append(ifname)
 
         ifnames.sort()
         return ifnames
