@@ -13,18 +13,16 @@ Options:
 import os
 import re
 import sys
-import dialog
-import ipaddr
-from string import Template
-
-import ifutil
-import netinfo
-import executil
-
-import conf
-
-from StringIO import StringIO
 import traceback
+from string import Template
+from StringIO import StringIO
+from bootconsole.dialog import Dialog
+import bootconsole.ipaddr as ipaddr
+import bootconsole.ifutil as ifutil
+import bootconsole.netinfo as netinfo
+import bootconsole.executil as executil
+import bootconsole.conf as conf
+
 
 class Error(Exception):
     pass
@@ -56,7 +54,7 @@ class Console:
         self.width = width
         self.height = height
 
-        self.console = dialog.Dialog(dialog="dialog")
+        self.console = Dialog(dialog="dialog")
         self.console.add_persistent_args(["--no-collapse"])
         self.console.add_persistent_args(["--ok-label", "Select"])
         self.console.add_persistent_args(["--cancel-label", "Back"])
