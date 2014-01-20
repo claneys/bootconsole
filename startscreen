@@ -66,8 +66,9 @@ class Console:
         if retcode == 2: # ESC, ALT+?
             text = "Do you really want to quit?"
             if self.console.yesno(text) == 0:
-                sys.exit(0)
-            return False
+                self.running = False
+            else:
+                return False
         return True
 
     def _wrapper(self, dialog, text, *args, **kws):
