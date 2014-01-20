@@ -79,6 +79,7 @@ class Conf:
             fh = open(self.conf_file, 'w')
             fh.writelines(original_content)
             fh.write("# Syleps hosts\n")
+            fh.write("# Don't modifiy this part !\n")
             fh.write(ip + "\t" + hostname + "\t" + hostname.split('.', 1)[0] + "\t" + alias +"\n")
             fh.write(peer_ip + "\t" + peer_hostname + "\t" + peer_hostname.split('.', 1)[0] + "\t" + peer_alias+"\n")
             fh.write(sups_ip + "\t" + sups_hostname + "\t" + sups_hostname.split('.', 1)[0] + "\t" + sups_alias+"\n")
