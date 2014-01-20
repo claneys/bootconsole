@@ -195,7 +195,7 @@ class SylepsConsole:
 
         items.append(("Reboot", "Reboot the appliance"))
         items.append(("Shutdown", "Shutdown the appliance"))
-        items.append(("Quit", "Quit the configuration console"))
+#        items.append(("Quit", "Quit the configuration console"))
 
         return items
 
