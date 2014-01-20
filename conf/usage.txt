@@ -1,0 +1,11 @@
+General appliance informations :
+
+Appliance S/N : 1337
+Oracle Database version: 11.2.0.3.8
+Oracle Fusion Middleware version : 11.1.2.2.0
+Sydel Univers version : 12.1
+
+Server informations :
+
+Ip address : $ipaddr
+Hostname : $hostname
