@@ -152,7 +152,7 @@ class SylepsConsole:
         self.advanced_enabled = advanced_enabled
 
     @staticmethod
-    def _get_filtered_ifnames(self):
+    def _get_filtered_ifnames():
         ifnames = []
         for ifname in netinfo.get_ifnames():
             is_ok = True
