@@ -21,8 +21,8 @@ class NetworkSettings:
     IFCFG_FILE='/etc/sysconfig/network-scripts/ifcfg-eth0'
     NETWORK_FILE='/etc/sysconfig/network'
     RESOLV_FILE='/etc/resolv.conf'
-    HEADER_SYLEPS = "# SYLEPS CONFCONSOLE\n"
-    WARN_SYLEPS = "# Don't modify this part !\n"
+    HEADER_SYLEPS = "# SYLEPS CONFCONSOLE"
+    WARN_SYLEPS = "# Don't modify this part !"
     def __init__(self):
         self.read_conf()
 
@@ -56,7 +56,7 @@ class NetworkSettings:
                  for line in ifconf.splitlines()
                  if line.strip().split()[0] in iface_opts ]
 
-    def write_conf(self, ifname, ifconf):
+    def write_conf(self, ifname, conf):
         self.read_conf()
         if not self.unconfigured:
             raise Error("refusing to write to %s\nheader not found: %s" %
@@ -64,10 +64,10 @@ class NetworkSettings:
 
         FILE = { "eth0" : self.IFCFG_FILE, "net" : self.NETWORK_FILE, "resolv" : self.RESOLV_FILE}[ifname]
         fh = file(FILE, "w")
-        fh.write(self.HEADER_SYLEPS)
-        fh.write(self.WARN_SYLEPS)
+        fh.write(self.HEADER_SYLEPS+'\n')
+        fh.write(self.WARN_SYLEPS+'\n')
         fh.write("\n")
-        fh.write(ifconf)
+        fh.write(conf+'\n')
 
         fh.close()
 
@@ -104,6 +104,20 @@ class NetworkSettings:
         self.write_conf(ifname, ifconf)
         self.write_conf('net', networkconf)
         self.write_conf('resolv', resolvconf)
+
+    def set_hostname(self, hostname):
+        fh = file(self.NETWORK_FILE, 'r')
+        networkconf = []
+        for line in fh.readlines():
+            if line.startswith('#') or line.startswith('HOSTNAME'):
+                continue
+            networkconf.append(line)
+        networkconf.append("HOSTNAME=%s" % hostname)
+        networkconf = "\n".join(networkconf)
+
+        self.write_conf('net', networkconf)
+        executil.system("hostname %s" % hostname)
+
 
 class NetworkInterface:
     """enumerate interface information from /etc/network/interfaces"""
