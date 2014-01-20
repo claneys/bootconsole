@@ -11,8 +11,9 @@ setup (name = "bootconsole",
        include_package_data=True,
        author = "Romain Forlot",
        author_email = "romain.forlot@syleps.fr",
-       url = "http:/github.com/claneys/bootconsol",
+       url = "http:/github.com/claneys/bootconsole",
        packages = ['bootconsole', ''],
-       data_files = [('/etc/bootconsole', ['conf/usage.txt', 'conf/bootconsole.conf']),
-                     ('/usr/sbin', ['bootconsole.py'])]
+       data_files = [('/etc/bootconsole', ['conf/usage.txt',
+           'conf/bootconsole.conf'])],
+       scripts = ['startscreen']
       )

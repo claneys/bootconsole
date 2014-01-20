@@ -63,7 +63,7 @@ program) and you should be safe.
 
 """
 
-from __future__ import nested_scopes
+#from __future__ import nested_scopes
 import sys, os, tempfile, random, string, re, types
 
 
