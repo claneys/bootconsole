@@ -220,7 +220,7 @@ class SylepsConsole:
         menu = []
         for ifname in self.ifnames:
             addr = InterfaceInfo(ifname).address
-            ifmethod = ifutil.get_ifmethod(ifname)
+            ifmethod = ifutil.NetworkInterface(ifname).method
 
             if addr:
                 desc = addr
@@ -258,13 +258,13 @@ class SylepsConsole:
         text += "Default Gateway: %s\n" % gateway
         text += "Name Server(s):  %s\n\n" % " ".join(nameservers)
 
-        ifmethod = ifutil.get_ifmethod(ifname)
+        ifmethod = ifutil.NetworkInterface(self.ifname).method
         if ifmethod:
             text += "Networking configuration method: %s\n" % ifmethod
 
         if len(self.ifnames) > 1:
             text += "Is this adapter's IP address displayed in Usage: "
-            if ifname == self._get_default_nic():
+            if self.ifname == self._get_default_nic():
                 text += "yes\n"
             else:
                 text += "no\n"
