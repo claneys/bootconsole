@@ -3,7 +3,6 @@
 # Copyright (c) 2014 Romain Forlot <romain.forlot@syleps.fr> - all rights reserved
 
 import os
-
 import executil
 import netinfo
 
@@ -18,7 +17,8 @@ class NetworkSettings:
     any customizations)
     """
 
-    IFCFG_FILE='/etc/sysconfig/network-scripts/ifcfg-eth0'
+    # IFCFG_FILE not complete, you have to add a suffix (eth0, br0,...)
+    IFCFG_FILE='/etc/sysconfig/network-scripts/ifcfg-'
     NETWORK_FILE='/etc/sysconfig/network'
     RESOLV_FILE='/etc/resolv.conf'
     HEADER_SYLEPS = "# SYLEPS CONFCONSOLE"
@@ -171,38 +171,6 @@ class NetworkInterface:
 
         return
 
-def get_nameservers(ifname):
-    #/etc/network/interfaces (static)
-    #interface = NetworkInterface(ifname)
-    #if interface.dns_nameservers:
-    #    return interface.dns_nameservers
-
-    def parse_resolv(path):
-        nameservers = []
-        for line in file(path).readlines():
-            if line.startswith('nameserver'):
-                nameservers.append(line.strip().split()[1])
-        return nameservers
-
-    #Debian relative
-    #resolvconf (dhcp)
-    #path = '/etc/resolvconf/run/interface'
-    #if os.path.exists(path):
-    #    for f in os.listdir(path):
-    #        if not f.startswith(ifname) or f.endswith('.inet'):
-    #            continue
-
-    #        nameservers = parse_resolv(os.path.join(path, f))
-    #        if nameservers:
-    #            return nameservers
-
-    #/etc/resolv.conf
-    nameservers = parse_resolv('/etc/resolv.conf')
-    if nameservers:
-        return nameservers
-
-    return []
-
 def ifup(ifname):
     return executil.getoutput("ifup", ifname)
 
@@ -246,10 +214,6 @@ def set_dhcp(ifname):
 
     except Exception, e:
         return str(e)
-
-def get_ipconf(ifname):
-    net = netinfo.InterfaceInfo(ifname)
-    return net.addr, net.netmask, net.gateway, get_nameservers(ifname)
 
 def get_ifmethod(ifname):
     interface = NetworkInterface(ifname)

@@ -40,23 +40,80 @@ IFF_DYNAMIC = 0x8000L  # addr's lost on inet down
 IFF_LOWER_UP = 0x10000 # has netif_dormant_on()
 IFF_DORMANT = 0x20000  # has netif_carrier_on()
 
-def get_ifnames():
-    """ returns list of interface names (up and down) """
-    ifnames = []
-    for line in file('/proc/net/dev').readlines():
-        try:
-            ifname, junk = line.strip().split(":")
-            ifnames.append(ifname)
-        except ValueError:
-            pass
-
-    return ifnames
 
 class Error(Exception):
     pass
 
+class NetworkInfo():
+
+    @staticmethod
+    def get_ifnames():
+        """ returns list of interface names (up and down) """
+        ifnames = []
+        for line in file('/proc/net/dev').readlines():
+            try:
+                ifname, junk = line.strip().split(":")
+                ifnames.append(ifname)
+            except ValueError:
+                pass
+
+        return ifnames
+
+    @classmethod
+    def get_filtered_ifnames(self):
+        ifnames = []
+        for ifname in self.get_ifnames():
+            is_ok = True
+            for elt in ('lo', 'tap', 'tun', 'vmnet', 'wmaster'):
+                if ifname.startswith(elt):
+                    is_ok = False
+            if is_ok == True:
+                ifnames.append(ifname)
+
+        ifnames.sort()
+        return ifnames
+
+    def get_nameservers(self):
+        #/etc/network/interfaces (static)
+        #interface = NetworkInterface(ifname)
+        #if interface.dns_nameservers:
+        #    return interface.dns_nameservers
+    
+        def parse_resolv(path):
+            nameservers = []
+            for line in file(path).readlines():
+                if line.startswith('nameserver'):
+                    nameservers.append(line.strip().split()[1])
+            return nameservers
+
+        #Debian relative
+        #resolvconf (dhcp)
+        #path = '/etc/resolvconf/run/interface'
+        #if os.path.exists(path):
+        #    for f in os.listdir(path):
+        #        if not f.startswith(ifname) or f.endswith('.inet'):
+        #            continue
+    
+        #        nameservers = parse_resolv(os.path.join(path, f))
+        #        if nameservers:
+        #            return nameservers
+
+        #/etc/resolv.conf
+        nameservers = parse_resolv('/etc/resolv.conf')
+        if nameservers:
+            return nameservers
+
+        return []
+
+    @property
+    def hostname(self):
+        return socket.gethostname()
+
 class InterfaceInfo(object):
-    """enumerate network related configurations"""
+    """
+    enumerate network related configurations
+    Based on direct access to the informations on device
+    """
 
     sockfd = lazyclass(socket.socket)(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -81,7 +138,7 @@ class InterfaceInfo(object):
         raise AttributeError("no such attribute: " + attrname)
 
     def __init__(self, ifname):
-        if ifname not in get_ifnames():
+        if ifname not in NetworkInfo().get_ifnames():
             raise Error("no such interface '%s'" % ifname)
 
         self.ifname = ifname
@@ -103,10 +160,12 @@ class InterfaceInfo(object):
         flags = struct.unpack('H', result[16:18])[0]
         return (flags & magic) != 0
 
+    def get_ipconf(self):
+        return self.address, self.netmask, self.gateway, NetworkInfo().get_nameservers()
+
     @property
     def address(self):
         return self._get_ioctl_addr(SIOCGIFADDR)
-    addr = address
 
     @property
     def netmask(self):
@@ -125,7 +184,3 @@ class InterfaceInfo(object):
                 return m.group(1)
 
         return None
-
-def get_hostname():
-    return socket.gethostname()
-

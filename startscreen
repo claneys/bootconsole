@@ -17,9 +17,9 @@ import traceback
 from string import Template
 from StringIO import StringIO
 from bootconsole.dialog import Dialog
+from bootconsole.netinfo import *
 import bootconsole.ipaddr as ipaddr
 import bootconsole.ifutil as ifutil
-import bootconsole.netinfo as netinfo
 import bootconsole.executil as executil
 import bootconsole.conf as conf
 
@@ -140,37 +140,29 @@ class SylepsConsole:
     OK = 0
     CANCEL = 1
     config = conf.Conf("bootconsole.conf")
+    net = NetworkInfo()
     
     def __init__(self, advanced_enabled=True):
+        # Console attribute
         title = "Syleps Linux Configuration Console"
         self.width = 75
         self.height = 22
 
         self.console = Console(title, self.width, self.height)
-        self.appname = "Syleps Linux %s" % netinfo.get_hostname().upper()
+        self.appname = "Syleps Linux %s" % self.net.hostname.upper()
 
         self.installer = Installer(path='/usr/bin/di-live')
 
         self.advanced_enabled = advanced_enabled
 
-    @staticmethod
-    def _get_filtered_ifnames():
-        ifnames = []
-        for ifname in netinfo.get_ifnames():
-            is_ok = True
-            for elt in ('lo', 'tap', 'br', 'tun', 'vmnet', 'wmaster'):
-                if ifname.startswith(elt):
-                    is_ok = False
-            if is_ok == True:
-                ifnames.append(ifname)
+        # Net attributes
+        if self._get_default_nic():
+            self.default_nic = self._get_default_nic()
+        self.ifnames = self.net.get_filtered_ifnames()
 
-        ifnames.sort()
-        return ifnames
-
-    @classmethod
     def _get_default_nic(self):
         def _validip(ifname):
-            ip = ifutil.get_ipconf(ifname)[0]
+            ip = InterfaceInfo(ifname).address
             if ip and not ip.startswith('169'):
                 return True
             return False
@@ -179,7 +171,7 @@ class SylepsConsole:
         if ifname and _validip(ifname):
             return ifname
 
-        for ifname in self._get_filtered_ifnames():
+        for ifname in self.ifnames:
             if _validip(ifname):
                 return ifname
 
@@ -199,10 +191,35 @@ class SylepsConsole:
 
         return items
 
+    def networking(self):
+
+        #if no interfaces at all - display error and go to advanced
+        if len(self.ifnames) == 0:
+            self.console.msgbox("Error", "No network adapters detected")
+            return "advanced"
+
+        # if only 1 interface, dont display menu - just configure it
+        if len(self.ifnames) == 1:
+            self.ifname = self.ifnames[0]
+            return "ifconf"
+
+        # display networking
+        text = "Choose network adapter to configure\n"
+        if self.default_nic:
+            text += "[*] This adapter's IP address is displayed in Usage"
+
+        retcode, self.ifname = self.console.menu("Networking configuration",
+                                                 text, self._get_netmenu())
+
+        if retcode is not self.OK:
+            return "advanced"
+
+        return "ifconf"
+
     def _get_netmenu(self):
         menu = []
-        for ifname in self._get_filtered_ifnames():
-            addr = ifutil.get_ipconf(ifname)[0]
+        for ifname in self.ifnames:
+            addr = InterfaceInfo(ifname).address
             ifmethod = ifutil.get_ifmethod(ifname)
 
             if addr:
@@ -219,20 +236,20 @@ class SylepsConsole:
 
         return menu
 
-    def _get_ifconfmenu(self, ifname):
+    def _get_ifconfmenu(self):
         menu = []
         menu.append(("DHCP", "Configure networking automatically"))
         menu.append(("StaticIP", "Configure networking manually"))
 
-        if not ifname == self._get_default_nic() and \
-           len(self._get_filtered_ifnames()) > 1 and \
-           ifutil.get_ipconf(ifname)[0] is not None:
-            menu.append(("Default", "Show this adapter's IP address in Usage"))
+        if not self.ifname == self._get_default_nic() and \
+           len(self.ifnames) > 1 and \
+           InterfaceInfo(self.ifname).address is not None:
+               menu.append(("Default", "Show this adapter's IP address in Usage"))
 
         return menu
 
-    def _get_ifconftext(self, ifname):
-        addr, netmask, gateway, nameservers = ifutil.get_ipconf(ifname)
+    def _get_ifconftext(self):
+        addr, netmask, gateway, nameservers = InterfaceInfo(self.ifname).get_ipconf()
         if addr is None:
             return "Network adapter is not configured\n"
 
@@ -245,7 +262,7 @@ class SylepsConsole:
         if ifmethod:
             text += "Networking configuration method: %s\n" % ifmethod
 
-        if len(self._get_filtered_ifnames()) > 1:
+        if len(self.ifnames) > 1:
             text += "Is this adapter's IP address displayed in Usage: "
             if ifname == self._get_default_nic():
                 text += "yes\n"
@@ -257,7 +274,7 @@ class SylepsConsole:
     def advanced(self):
         #dont display cancel button when no interfaces at all
         no_cancel = False
-        if len(self._get_filtered_ifnames()) == 0:
+        if len(self.ifnames) == 0:
             no_cancel = True
         retcode, choice = self.console.menu("Advanced Menu",
                                             self.appname + " Advanced Menu\n",
@@ -269,40 +286,14 @@ class SylepsConsole:
 
         return "_adv_" + choice.lower()
 
-    def networking(self):
-        ifnames = self._get_filtered_ifnames()
-
-        #if no interfaces at all - display error and go to advanced
-        if len(ifnames) == 0:
-            self.console.msgbox("Error", "No network adapters detected")
-            return "advanced"
-
-        # if only 1 interface, dont display menu - just configure it
-        if len(ifnames) == 1:
-            self.ifname = ifnames[0]
-            return "ifconf"
-
-        # display networking
-        text = "Choose network adapter to configure\n"
-        if self._get_default_nic():
-            text += "[*] This adapter's IP address is displayed in Usage"
-
-        retcode, self.ifname = self.console.menu("Networking configuration",
-                                                 text, self._get_netmenu())
-
-        if retcode is not self.OK:
-            return "advanced"
-
-        return "ifconf"
-
     def ifconf(self):
         retcode, choice = self.console.menu("%s configuration" % self.ifname,
-                                            self._get_ifconftext(self.ifname),
-                                            self._get_ifconfmenu(self.ifname))
+                                            self._get_ifconftext(),
+                                            self._get_ifconfmenu())
 
         if retcode is not self.OK:
             # if multiple interfaces go back to networking
-            if len(self._get_filtered_ifnames()) > 1:
+            if len(self.ifnames) > 1:
                 return "networking"
 
             return "advanced"
@@ -345,7 +336,7 @@ class SylepsConsole:
                                                                         iprange) ]
             return []
 
-        addr, netmask, gateway, nameservers = ifutil.get_ipconf(self.ifname)
+        addr, netmask, gateway, nameservers = InterfaceInfo(self.ifname).get_ipconf()
         input = [addr, netmask, gateway]
         input.extend(nameservers)
 
@@ -394,7 +385,7 @@ class SylepsConsole:
                 err = "\n".join(err)
             else:
                 err = ifutil.set_static(self.ifname, addr, netmask,
-                                        gateway, nameservers, netinfo.get_hostname())
+                                        gateway, nameservers, self.net.hostname)
                 if not err:
                     break
 
@@ -440,7 +431,7 @@ class SylepsConsole:
         hosts_conf = conf.Conf("hosts")
         ifname = self._get_default_nic()
         input = [None, None, None, None, None] 
-        input[0] = netinfo.get_hostname()
+        input[0] = self.net.hostname
         
         if alias == 'ofm11g':
             label_peer_hostname = "DB Hostname"
@@ -478,7 +469,7 @@ class SylepsConsole:
             for i in range(len(input)):
                 input[i] = input[i].strip()
             
-            ip = ifutil.get_ipconf(ifname)[0]
+            ip = InterfaceInfo(self.ifname).address
             hostname = input[0]
             peer_hostname = input[1]
             sups_hostname = input[2]
@@ -567,7 +558,7 @@ class SylepsConsole:
             default_return_value = "quit"
 
         #if no interfaces at all - display error and go to advanced
-        if len(self._get_filtered_ifnames()) == 0:
+        if len(self.ifnames) == 0:
             error = "No network adapters detected"
             if not self.advanced_enabled:
                 fatal(error)
@@ -586,8 +577,8 @@ class SylepsConsole:
             return "networking"
 
         #display usage
-        ipaddr = ifutil.get_ipconf(ifname)[0]
-        hostname = netinfo.get_hostname()
+        ipaddr = InterfaceInfo(ifname).address
+        hostname = self.net.hostname
 
         #backwards compatible - use usage.txt if it exists
         t = file(conf.path("usage.txt"), 'r').read()
