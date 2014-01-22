@@ -1,8 +1,9 @@
 General appliance informations :
 
-Appliance S/N : 1337
+Template version : [as|db]131230
+Appliance S/N : $serial
 Oracle Database version: 11.2.0.3.8
-Oracle Fusion Middleware version : 11.1.2.2.0
+Oracle Forms and Report version : 11.1.2.2.0
 Sydel Univers version : 12.1
 
 Server informations :

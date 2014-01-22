@@ -1,5 +1,5 @@
 %define name bootconsole
-%define version 1.0
+%define version 1.1
 %define release el5_1
 
 Summary: Boot Ncurses Console configuration
@@ -17,7 +17,9 @@ Url: http:/github.com/claneys/bootconsole
 Requires: dialog
 
 %description
-UNKNOWN
+The Configuration Console's objective is to provide the user with basic network configuration information and the ability to perform basic tasks, so as not to force the user to the command line.
+The information provided includes: - The binded IP address - The listening services the user may connect to over the network - Version of core appliance software like Oracle database, application server... - Serial Number of appliances matching 3 servers database, application server and SUPrintServer
+The basic tasks that the user may perform include: - Setting a static IP address - Requesting DHCP - Set /etc/hosts entries about appliance's servers - Rebooting the appliance - Shutting down the appliance
 
 %prep
 %setup

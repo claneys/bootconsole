@@ -13,6 +13,7 @@ Options:
 import os
 import re
 import sys
+import time
 import traceback
 from string import Template
 from StringIO import StringIO
@@ -145,6 +146,7 @@ class SylepsConsole:
         title = "Syleps Linux Configuration Console"
         self.width = 75
         self.height = 22
+        self.alias = self.config.param['alias']
 
         self.console = Console(title, self.width, self.height)
         self.appname = "Syleps Linux %s" % netinfo.get_hostname().upper()
@@ -152,6 +154,17 @@ class SylepsConsole:
         self.installer = Installer(path='/usr/bin/di-live')
 
         self.advanced_enabled = advanced_enabled
+
+    def _get_serial(self):
+        prefix = { 'oradb11g': 'db', 'ofm11g': 'as'}.get(self.alias, 'Invalid_alias')
+        fd = time.gmtime(os.stat(conf.path('usage.txt'))[-2])
+        fd = time.strftime('%y%m%d', fd)
+        try:
+            uuid = file(conf.path('validated'), 'r').readline()
+        except:
+            raise('This VM has never been validated')
+            
+        return "%s-%s-%s" % (prefix, fd, uuid)
 
     @staticmethod
     def _get_filtered_ifnames():
@@ -436,13 +449,12 @@ class SylepsConsole:
 
             return []
 
-        alias = self.config.param['alias']
         hosts_conf = conf.Conf("hosts")
         ifname = self._get_default_nic()
         input = [None, None, None, None, None] 
         input[0] = netinfo.get_hostname()
         
-        if alias == 'ofm11g':
+        if self.alias == 'ofm11g':
             label_peer_hostname = "DB Hostname"
             input[1] = get_ip_or_hostname_from_alias('oradb11g', hosts_conf, 'hostname')
             label_peer_ip = "DB IP address"
@@ -591,7 +603,7 @@ class SylepsConsole:
 
         #backwards compatible - use usage.txt if it exists
         t = file(conf.path("usage.txt"), 'r').read()
-        text = Template(t).substitute(hostname=hostname, ipaddr=ipaddr)
+        text = Template(t).substitute(serial=self._get_serial(), hostname=hostname, ipaddr=ipaddr)
 
         text += "\n" * (self.height - len(text.splitlines()) - 7)
         text += "                  Syleps SU Appliance\n"

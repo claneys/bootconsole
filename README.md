@@ -18,7 +18,7 @@ The basic tasks that the user may perform include:
     - Rebooting the appliance
     - Shutting down the appliance
 
-When setting a static IP address or requesting DHCP, /etc/network/interfaces
+When setting a static IP address or requesting DHCP, red hat network files 
 will be updated so the changes are perminent (unless the configuration
 file has been customized by the user).
 

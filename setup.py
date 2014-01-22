@@ -15,5 +15,5 @@ setup (name = "bootconsole",
        packages = ['bootconsole', ''],
        data_files = [('/etc/bootconsole', ['conf/usage.txt',
            'conf/bootconsole.conf'])],
-       scripts = ['startscreen']
+       scripts = ['startscreen', 'sic_seal']
       )
