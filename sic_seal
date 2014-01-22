@@ -2,6 +2,6 @@
 
 BOOTCONSOLE_VFILE=/etc/bootconsole/validated
 
-chattr -i $BOOTCONSOLE_VFILE
+[ -f $BOOTCONSOLE_VFILE ] && chattr -i $BOOTCONSOLE_VFILE
 uuidgen > $BOOTCONSOLE_VFILE
 chattr +i $BOOTCONSOLE_VFILE
