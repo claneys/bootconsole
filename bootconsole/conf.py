@@ -35,7 +35,11 @@ class Conf:
             if not line or line.startswith("#"):
                 continue
 
-            op, val = re.split(r'\s+', line, 1)
+            try:
+                op, val = re.split(r'\s+', line, 1)
+            except ValueError:
+                op = line
+                val = ''
             if ipaddr.is_legal_ip(op):
                 self.param[op] = val.split()
                 continue
@@ -44,8 +48,16 @@ class Conf:
     def set_default_nic(self, ifname):
         self.param['default_nic'] = ifname
 
-        fh = file(self.conf_file, "w")
-        print >> fh, "default_nic %s" % ifname
+        fh = open(self.conf_file, 'r')
+        content = fh.readlines()
+        fh.close
+
+        fh = open(self.conf_file, 'w')
+        for line in content:
+            if line.startswith('default_nic'):
+                fh.write("default_nic %s\n" % ifname)
+                continue
+            fh.write(line)
         fh.close()
 
     def set_hosts(self, ip, hostname, peer_hostname, sups_hostname, peer_ip, sups_ip, alias):
