@@ -401,10 +401,6 @@ class SylepsConsole:
 
         return "ifconf"
 
-    def _ifconf_default(self):
-        self.config.set_default_nic(self.ifname)
-        return "ifconf"
-
     def _adv_hosts(self):
         def _validate(hostname, peer_hostname, sups_hostname, peer_ip, sups_ip):
             errors = []
