@@ -4,7 +4,6 @@
 
 import re
 import os
-import executil
 import ifutil
 import ipaddr
 
@@ -35,17 +34,29 @@ class Conf:
             if not line or line.startswith("#"):
                 continue
 
-            op, val = re.split(r'\s+', line, 1)
-            if ipaddr.is_legal_ip(op):
-                self.param[op] = val.split()
+            try:
+                op, val = re.split(r'\s+', line, 1)
+            except ValueError:
+                op = line
+                val = ''
+                
+                if ipaddr.is_legal_ip(op):
+                    self.param[op] = val.split()
                 continue
             self.param[op] = val
 
-    def set_default_nic(self, ifname):
-        self.param['default_nic'] = ifname
+    def set_param(self, param_key, new_value):
+        # Define description of parameters
+        # And assig new value to parameter
+        param_desc = { 'default_nic' : '# set default network interface', 'alias' : '# set alias of this VM\n# set alias of this VM', }[param_key]
+        self.param[param_key] = new_value
 
-        fh = file(self.conf_file, "w")
-        print >> fh, "default_nic %s" % ifname
+        # Write changes
+        fh = open(self.conf_file, 'w')
+        for k,v in self.param.items():
+            k = k.strip()
+            fh.write('%s\n%s %s' % (param_desc, k, v))
+
         fh.close()
 
     def set_hosts(self, ip, hostname, peer_hostname, sups_hostname, peer_ip, sups_ip, alias):

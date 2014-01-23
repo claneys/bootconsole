@@ -23,6 +23,7 @@ class NetworkSettings:
     RESOLV_FILE='/etc/resolv.conf'
     HEADER_SYLEPS = "# SYLEPS CONFCONSOLE"
     WARN_SYLEPS = "# Don't modify this part !"
+
     def __init__(self):
         self.read_conf()
 

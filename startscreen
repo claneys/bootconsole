@@ -429,7 +429,6 @@ class SylepsConsole:
 
         alias = self.config.param['alias']
         hosts_conf = conf.Conf("hosts")
-        ifname = self._get_default_nic()
         input = [None, None, None, None, None] 
         input[0] = self.net.hostname
         
@@ -577,12 +576,12 @@ class SylepsConsole:
             return "networking"
 
         #display usage
-        ipaddr = InterfaceInfo(ifname).address
+        ip = InterfaceInfo(ifname).address
         hostname = self.net.hostname
 
         #backwards compatible - use usage.txt if it exists
         t = file(conf.path("usage.txt"), 'r').read()
-        text = Template(t).substitute(hostname=hostname, ipaddr=ipaddr)
+        text = Template(t).substitute(hostname=hostname, ipaddr=ip)
 
         text += "\n" * (self.height - len(text.splitlines()) - 7)
         text += "                  Syleps SU Appliance\n"
