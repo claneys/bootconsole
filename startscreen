@@ -94,8 +94,8 @@ class Console:
     def infobox(self, text):
         return self._wrapper("infobox", text)
 
-    def yesno(self, text):
-        return self._wrapper("yesno", text)
+    def yesno(self, text, height=10, width=30):
+        return self._wrapper("yesno", text, height, width)
 
     def msgbox(self, title, text, button_label="ok"):
         return self._wrapper("msgbox", text, self.height, self.width,
@@ -188,9 +188,16 @@ class SylepsConsole:
                 return True
             return False
 
-        ifname = self.config.param['default_nic']
-        if ifname and _validip(ifname):
-            return ifname
+        self.default_nic_set = False
+        try:
+            ifname = self.config.param['default_nic']
+        except KeyError:
+            ifname = None
+
+        if ifname:
+            self.default_nic_set = True
+            if _validip(ifname):
+                return ifname
 
         for ifname in self._get_filtered_ifnames():
             if _validip(ifname):
@@ -423,9 +430,6 @@ class SylepsConsole:
 
         return "ifconf"
 
-    def _ifconf_default(self):
-        self.config.set_default_nic(self.ifname)
-        return "ifconf"
 
     def _adv_hosts(self):
         def _validate(hostname, peer_hostname, sups_hostname, peer_ip, sups_ip):
@@ -570,6 +574,16 @@ class SylepsConsole:
                 self.console.msgbox("Caught exception", sio.getvalue())
                 dialog = prev_dialog
 
+    def keep_ifconf(self):
+        ifname = self._get_default_nic()
+        text = self._get_ifconftext(ifname)
+        if self.console.yesno("%s\n\nAre we keeping this network configuration ?"% text, 20, 60) == self.OK:
+            self.config.set_default_nic(ifname)
+            return 'usage'
+        else:
+           self.config.set_default_nic(ifname)
+           return 'networking'
+
     def usage(self):
         if self.advanced_enabled:
             default_button_label = "Advanced Menu"
@@ -587,13 +601,18 @@ class SylepsConsole:
             self.console.msgbox("Error", error)
             return "advanced"
 
-        #if interfaces but no default - display error and go to networking
+        #if interfaces but no default - ask if we keep that actual network configuration
         ifname = self._get_default_nic()
-        if not ifname:
-            error = "Networking is not yet configured"
+        if not self.default_nic_set:
+            error = Network configuration need your approval."
             if not self.advanced_enabled:
                 fatal(error)
-
+            self.console.msgbox("Error", error)
+            return "keep_ifconf"
+        elif not ifname:
+            error = "Network not yet configured.\n\n Please configure the network interface."
+            if not self.advanced_enabled:
+                fatal(error)
             self.console.msgbox("Error", error)
             return "networking"
 
