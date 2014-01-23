@@ -189,7 +189,11 @@ class SylepsConsole:
             return False
 
         self.default_nic_set = False
-        ifname = self.config.param['default_nic']
+        try:
+            ifname = self.config.param['default_nic']
+        except KeyError:
+            ifname = None
+
         if ifname:
             self.default_nic_set = True
             if _validip(ifname):

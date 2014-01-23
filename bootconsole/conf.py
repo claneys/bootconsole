@@ -52,6 +52,9 @@ class Conf:
         content = fh.readlines()
         fh.close
 
+        if not "default_nic" in content:
+            content.insert(1, 'default_nic')
+
         fh = open(self.conf_file, 'w')
         for line in content:
             if line.startswith('default_nic'):
