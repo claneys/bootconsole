@@ -1,6 +1,6 @@
 %define name bootconsole
-%define version 1.1
-%define release el5_1
+%define version 1.2
+%define release el5_2
 
 Summary: Boot Ncurses Console configuration
 Name: %{name}
@@ -38,10 +38,10 @@ rm -rf $RPM_BUILD_ROOT
 
 %post
 # Add Header in bootconsole managed files
-sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" /etc/sysconfig/network-scripts/ifcfg-eth0
-sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" /etc/sysconfig/network
-sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" /etc/resolv.conf
-sed -i'.rpmsave' "s/1:2345:respawn:.*mingetty tty1/1:2345:respawn:\/usr\/bin\/startscreen/" /etc/inittab
+[ "$(grep 'SYLEPS CONFCONSOLE' /etc/sysconfig/network-scripts/ifcfg-eth0)" ] && sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" /etc/sysconfig/network-scripts/ifcfg-eth0
+[ "$(grep 'SYLEPS CONFCONSOLE' /etc/sysconfig/network)" ] && sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" /etc/sysconfig/network
+[ "$(grep 'SYLEPS CONFCONSOLE' /etc/resolv.conf)" ] && sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" /etc/resolv.conf
+[ "$(grep 'startscreen' /etc/inittab)" ] && sed -i'.rpmsave' "s/1:2345:respawn:.*mingetty tty1/1:2345:respawn:\/usr\/bin\/startscreen/" /etc/inittab
 
 %postun
 # Remove Header in bootconsole managed files

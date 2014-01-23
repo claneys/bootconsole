@@ -604,7 +604,7 @@ class SylepsConsole:
         #if interfaces but no default - ask if we keep that actual network configuration
         ifname = self._get_default_nic()
         if not self.default_nic_set:
-            error = "%s\nNetwork configuration need your approval." % self.default_nic_set
+            error = Network configuration need your approval."
             if not self.advanced_enabled:
                 fatal(error)
             self.console.msgbox("Error", error)
