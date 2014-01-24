@@ -4,7 +4,7 @@
 
 import re
 import os
-import ifutil
+from ifutil import NetworkSettings
 from ipaddr import IP
 
 class Error(Exception):
@@ -67,7 +67,7 @@ class Conf:
                 peer_alias = "ofm11g"
             sups_alias = "sups"
 
-            ifutil.NetworkSettings().set_hostname(hostname)
+            NetworkSettings().set_hostname(hostname)
 
             original_content = []
             is_custom = False

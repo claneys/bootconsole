@@ -65,9 +65,10 @@ class NetworkSettings:
 
     def write_conf(self, filename, conf):
         self.read_conf()
+
         if not self.unconfigured:
-            raise Error("refusing to write to %s\nheader not found: %s" %
-                        (self._filepath_assembler(), self.HEADER_SYLEPS))
+            raise Error("refusing to write to %s\nheader not found: %s in ifcfg file.\nBootconsole not installed properly." %
+                        (filename, self.HEADER_SYLEPS))
 
         fh = file(filename, "w")
         fh.write(self.HEADER_SYLEPS+'\n')
@@ -114,7 +115,7 @@ class NetworkSettings:
         fh = file(self.NETWORK_FILE, 'r')
         networkconf = []
         for line in fh.readlines():
-            if line.startswith('#') or line.startswith('HOSTNAME'):
+            if line.startswith('HOSTNAME'):
                 continue
             networkconf.append(line)
         networkconf.append("HOSTNAME=%s" % hostname)

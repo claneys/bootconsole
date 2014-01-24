@@ -20,7 +20,7 @@ from StringIO import StringIO
 from bootconsole.dialog import Dialog
 from bootconsole.netinfo import *
 from bootconsole.ipaddr import IP, IPRange
-from bootconsole.ifutil import NetworkInterface, NetworkSettings
+from bootconsole.ifutil import NetworkInterface
 import bootconsole.executil as executil
 import bootconsole.conf as conf
 
@@ -160,6 +160,7 @@ class SylepsConsole:
         # Net attributes
         if self._get_default_nic():
             self.default_nic = self._get_default_nic()
+            self.default_ip, self.default_netmask, self.default_gateway, self.default_nameservers = SysInterfaceInfo(self.default_nic).get_ipconf()
         self.ifnames = self.net.get_filtered_ifnames()
 
     def _get_serial(self):
@@ -493,7 +494,7 @@ class SylepsConsole:
             if err:
                 err = "\n".join(err)
             else:
-                err = hosts_conf.set_hosts(self.ip, hostname, peer_hostname, sups_hostname, peer_ip, sups_ip, alias)
+                err = hosts_conf.set_hosts(self.default_ip, hostname, peer_hostname, sups_hostname, peer_ip, sups_ip, self.alias)
                 if not err:
                     break
 
@@ -591,14 +592,13 @@ class SylepsConsole:
             return "advanced"
 
         #if interfaces but no default - ask if we keep that actual network configuration
-        ifname = self._get_default_nic()
         if not self.default_nic_set:
             error = "Network configuration need your approval."
             if not self.advanced_enabled:
                 fatal(error)
             self.console.msgbox("Error", error)
             return "keep_ifconf"
-        elif not ifname:
+        elif not self.default_nic:
             error = "Network not yet configured.\n\n Please configure the network interface."
             if not self.advanced_enabled:
                 fatal(error)
@@ -606,12 +606,11 @@ class SylepsConsole:
             return "networking"
 
         #display usage
-        ip = SysInterfaceInfo(ifname).address
         hostname = self.net.hostname
 
         #backwards compatible - use usage.txt if it exists
         t = file(conf.path("usage.txt"), 'r').read()
-        text = Template(t).substitute(serial=self._get_serial(), hostname=hostname, ipaddr=ip)
+        text = Template(t).substitute(serial=self._get_serial(), hostname=hostname, ipaddr=self.default_ip)
 
         text += "\n" * (self.height - len(text.splitlines()) - 7)
         text += "                  Syleps SU Appliance\n"
