@@ -1,13 +1,13 @@
 %define name bootconsole
-%define version 1.0
-%define release el5_1
+%define version 1.2
+%define release el5_2
 
 Summary: Boot Ncurses Console configuration
 Name: %{name}
 Version: %{version}
 Release: %{release}
 Source0: %{name}-%{version}.tar.gz
-License: UNKNOWN
+License: GPL
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Prefix: %{_prefix}
@@ -17,7 +17,9 @@ Url: http:/github.com/claneys/bootconsole
 Requires: dialog
 
 %description
-UNKNOWN
+The Configuration Console's objective is to provide the user with basic network configuration information and the ability to perform basic tasks, so as not to force the user to the command line.
+The information provided includes: - The binded IP address - The listening services the user may connect to over the network - Version of core appliance software like Oracle database, application server... - Serial Number of appliances matching 3 servers database, application server and SUPrintServer
+The basic tasks that the user may perform include: - Setting a static IP address - Requesting DHCP - Set /etc/hosts entries about appliance's servers - Rebooting the appliance - Shutting down the appliance
 
 %prep
 %setup
@@ -36,10 +38,9 @@ rm -rf $RPM_BUILD_ROOT
 
 %post
 # Add Header in bootconsole managed files
-sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" /etc/sysconfig/network-scripts/ifcfg-eth0
-sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" /etc/sysconfig/network
-sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" /etc/resolv.conf
-sed -i'.rpmsave' "s/1:2345:respawn:.*mingetty tty1/1:2345:respawn:\/usr\/bin\/startscreen/" /etc/inittab
+[ -n $(grep 'SYLEPS CONFCONSOLE' /etc/sysconfig/network-scripts/ifcfg-eth0) ] && sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" /etc/sysconfig/network-scripts/ifcfg-eth0
+[ -n $(grep 'SYLEPS CONFCONSOLE' /etc/sysconfig/network) ] && sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" /etc/sysconfig/network
+[ -n $(grep 'startscreen' /etc/inittab) ] && sed -i'.rpmsave' "s/1:2345:respawn:.*mingetty tty1/1:2345:respawn:\/usr\/bin\/startscreen/" /etc/inittab
 
 %postun
 # Remove Header in bootconsole managed files

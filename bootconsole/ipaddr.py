@@ -18,18 +18,18 @@ class Error(Exception):
     pass
 
 class IP(long):
-    def __new__(cls, arg):
+    def __new__(self, arg):
         if isinstance(arg, IP):
-            return long.__new__(cls, long(arg))
+            return long.__new__(self, long(arg))
 
         elif isinstance(arg, (int, long)):
-            return long.__new__(cls, arg)
+            return long.__new__(self, arg)
 
         else:
-            if not is_legal_ip(arg):
+            if not self.is_legal(arg):
                 raise Error("illegal ip (%s)" % arg)
 
-            return long.__new__(cls, _str2int(arg))
+            return long.__new__(self, _str2int(arg))
 
     def __str__(self):
         return _int2str(self)
@@ -43,6 +43,7 @@ class IP(long):
 
         return f
 
+    @staticmethod
     def is_legal(ip):
         try:
             if len([ octet for octet in ip.split(".") 
@@ -66,10 +67,10 @@ class IP(long):
 
 class IPRange:
     @classmethod
-    def from_cidr(cls, arg):
+    def from_cidr(self, arg):
         address, cidr = arg.split('/')
         netmask = 2 ** 32 - (2 ** (32 - int(cidr)))
-        return cls(address, netmask)
+        return self(address, netmask)
 
     def __init__(self, ip, netmask):
         self.ip = IP(ip)

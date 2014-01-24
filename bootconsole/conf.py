@@ -5,7 +5,7 @@
 import re
 import os
 import ifutil
-import ipaddr
+from ipaddr import IP
 
 class Error(Exception):
     pass

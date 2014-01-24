@@ -13,6 +13,7 @@ Options:
 import os
 import re
 import sys
+import time
 import traceback
 from string import Template
 from StringIO import StringIO
@@ -93,8 +94,8 @@ class Console:
     def infobox(self, text):
         return self._wrapper("infobox", text)
 
-    def yesno(self, text):
-        return self._wrapper("yesno", text)
+    def yesno(self, text, height=10, width=30):
+        return self._wrapper("yesno", text, height, width)
 
     def msgbox(self, title, text, button_label="ok"):
         return self._wrapper("msgbox", text, self.height, self.width,
@@ -147,6 +148,7 @@ class SylepsConsole:
         title = "Syleps Linux Configuration Console"
         self.width = 75
         self.height = 22
+        self.alias = self.config.param['alias']
 
         self.console = Console(title, self.width, self.height)
         self.appname = "Syleps Linux %s" % self.net.hostname.upper()
@@ -160,6 +162,18 @@ class SylepsConsole:
             self.default_nic = self._get_default_nic()
         self.ifnames = self.net.get_filtered_ifnames()
 
+    def _get_serial(self):
+        prefix = { 'oradb11g': 'db', 'ofm11g': 'as'}.get(self.alias, 'Invalid_alias')
+        fd = time.gmtime(os.stat(conf.path('usage.txt'))[-2])
+        fd = time.strftime('%y%m%d', fd)
+        try:
+            uuid = file(conf.path('validated'), 'r').readline()
+        except:
+            raise('This VM has never been validated')
+            
+        return "%s-%s-%s" % (prefix, fd, uuid)
+
+    @classmethod
     def _get_default_nic(self):
         def _validip(ifname):
             ip = SysInterfaceInfo(ifname).address
@@ -167,9 +181,16 @@ class SylepsConsole:
                 return True
             return False
 
-        ifname = self.config.param['default_nic']
-        if ifname and _validip(ifname):
-            return ifname
+        self.default_nic_set = False
+        try:
+            ifname = self.config.param['default_nic']
+        except KeyError:
+            ifname = None
+
+        if ifname:
+            self.default_nic_set = True
+            if _validip(ifname):
+                return ifname
 
         for ifname in self.ifnames:
             if _validip(ifname):
@@ -221,7 +242,7 @@ class SylepsConsole:
         menu = []
         for ifname in self.ifnames:
             addr = SysInterfaceInfo(ifname).address
-            ifmethod = ifutil.NetworkInterface(ifname).method
+            ifmethod = NetworkInterface(ifname).method
 
             if addr:
                 desc = addr
@@ -422,12 +443,11 @@ class SylepsConsole:
 
             return []
 
-        alias = self.config.param['alias']
         hosts_conf = conf.Conf("hosts")
         input = [None, None, None, None, None] 
         input[0] = self.net.hostname
         
-        if alias == 'ofm11g':
+        if self.alias == 'ofm11g':
             label_peer_hostname = "DB Hostname"
             input[1] = get_ip_or_hostname_from_alias('oradb11g', hosts_conf, 'hostname')
             label_peer_ip = "DB IP address"
@@ -542,6 +562,17 @@ class SylepsConsole:
                 self.console.msgbox("Caught exception", sio.getvalue())
                 dialog = prev_dialog
 
+    def keep_ifconf(self):
+        ifname = self._get_default_nic()
+        param = 'default_nic'
+        text = self._get_ifconftext(ifname)
+        if self.console.yesno("%s\n\nAre we keeping this network configuration ?"% text, 20, 60) == self.OK:
+            self.config.set_param(param, ifname)
+            return 'usage'
+        else:
+           self.config.set_param(param, ifname)
+           return 'networking'
+
     def usage(self):
         if self.advanced_enabled:
             default_button_label = "Advanced Menu"
@@ -559,13 +590,18 @@ class SylepsConsole:
             self.console.msgbox("Error", error)
             return "advanced"
 
-        #if interfaces but no default - display error and go to networking
+        #if interfaces but no default - ask if we keep that actual network configuration
         ifname = self._get_default_nic()
-        if not ifname:
-            error = "Networking is not yet configured"
+        if not self.default_nic_set:
+            error = "Network configuration need your approval."
             if not self.advanced_enabled:
                 fatal(error)
-
+            self.console.msgbox("Error", error)
+            return "keep_ifconf"
+        elif not ifname:
+            error = "Network not yet configured.\n\n Please configure the network interface."
+            if not self.advanced_enabled:
+                fatal(error)
             self.console.msgbox("Error", error)
             return "networking"
 
@@ -575,7 +611,7 @@ class SylepsConsole:
 
         #backwards compatible - use usage.txt if it exists
         t = file(conf.path("usage.txt"), 'r').read()
-        text = Template(t).substitute(hostname=hostname, ipaddr=ip)
+        text = Template(t).substitute(serial=self._get_serial(), hostname=hostname, ipaddr=ip)
 
         text += "\n" * (self.height - len(text.splitlines()) - 7)
         text += "                  Syleps SU Appliance\n"
