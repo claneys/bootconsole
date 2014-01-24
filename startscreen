@@ -271,7 +271,9 @@ class SylepsConsole:
 
         return menu
 
-    def _get_ifconftext(self):
+    def _get_ifconftext(self, ifname):
+        self.ip, self.netmask, self.gateway, self.nameservers = SysInterfaceInfo(ifname).get_ipconf()
+
         if self.ip is None:
             return "Network adapter is not configured\n"
 
@@ -280,13 +282,13 @@ class SylepsConsole:
         text += "Default Gateway: %s\n" % self.gateway
         text += "Name Server(s):  %s\n\n" % " ".join(self.nameservers)
 
-        ifmethod = NetworkInterface(self.ifname).method
+        ifmethod = NetworkInterface(ifname).method
         if ifmethod:
             text += "Networking configuration method: %s\n" % ifmethod
 
         if len(self.ifnames) > 1:
             text += "Is this adapter's IP address displayed in Usage: "
-            if self.ifname == self._get_default_nic():
+            if ifname == self.default_nic:
                 text += "yes\n"
             else:
                 text += "no\n"
@@ -310,7 +312,7 @@ class SylepsConsole:
 
     def ifconf(self):
         retcode, choice = self.console.menu("%s configuration" % self.ifname,
-                                            self._get_ifconftext(),
+                                            self._get_ifconftext(self.ifname),
                                             self._get_ifconfmenu())
 
         if retcode is not self.OK:
@@ -564,14 +566,13 @@ class SylepsConsole:
                 dialog = prev_dialog
 
     def keep_ifconf(self):
-        ifname = self._get_default_nic()
         param = 'default_nic'
-        text = self._get_ifconftext(ifname)
+        self.config.set_param(param, self.default_nic)
+
+        text = self._get_ifconftext(self.default_nic)
         if self.console.yesno("%s\n\nAre we keeping this network configuration ?"% text, 20, 60) == self.OK:
-            self.config.set_param(param, ifname)
             return 'usage'
         else:
-           self.config.set_param(param, ifname)
            return 'networking'
 
     def usage(self):
