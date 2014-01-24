@@ -18,7 +18,7 @@ from string import Template
 from StringIO import StringIO
 from bootconsole.dialog import Dialog
 from bootconsole.netinfo import *
-import bootconsole.ipaddr as ipaddr
+from bootconsole.ipaddr import IP, IPRange
 import bootconsole.ifutil as ifutil
 import bootconsole.executil as executil
 import bootconsole.conf as conf
@@ -308,16 +308,16 @@ class SylepsConsole:
             errors = []
             if not addr:
                 errors.append("No IP address provided")
-            elif not ipaddr.is_legal_ip(addr):
+            elif not IP.is_legal(addr):
                 errors.append("Invalid IP address: %s" % addr)
 
             if not netmask:
                 errors.append("No netmask provided")
-            elif not ipaddr.is_legal_ip(netmask):
+            elif not IP.is_legal(netmask):
                 errors.append("Invalid netmask: %s" % netmask)
 
             for nameserver in nameservers:
-                if nameserver and not ipaddr.is_legal_ip(nameserver):
+                if nameserver and not IP.is_legal(nameserver):
                     errors.append("Invalid nameserver: %s" % nameserver)
 
             if len(nameservers) != len(set(nameservers)):
@@ -327,10 +327,10 @@ class SylepsConsole:
                 return errors
 
             if gateway:
-                if not ipaddr.is_legal_ip(gateway):
+                if not IP.is_legal(gateway):
                     return [ "Invalid gateway: %s" % gateway ]
                 else:
-                    iprange = ipaddr.IPRange(addr, netmask)
+                    iprange = IPRange(addr, netmask)
                     if gateway not in iprange:
                         return [ "Gateway (%s) not in IP range (%s)" % (gateway,
                                                                         iprange) ]
@@ -406,7 +406,7 @@ class SylepsConsole:
             errors = []
             if not peer_ip or not sups_ip:
                 errors.append("IP address missing")
-            elif not ipaddr.is_legal_ip(peer_ip) or not ipaddr.is_legal_ip(sups_ip):
+            elif not IP.is_legal(peer_ip) or not IP.is_legal(sups_ip):
                 errors.append("Invalid IP address")
 
             if re.search("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$", hostname) == None:

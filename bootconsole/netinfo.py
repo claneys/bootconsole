@@ -44,7 +44,7 @@ IFF_DORMANT = 0x20000  # has netif_carrier_on()
 class Error(Exception):
     pass
 
-class NetworkInfo():
+class NetworkInfo:
 
     @staticmethod
     def get_ifnames():
