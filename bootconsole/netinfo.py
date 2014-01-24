@@ -109,7 +109,7 @@ class NetworkInfo:
     def hostname(self):
         return socket.gethostname()
 
-class InterfaceInfo(object):
+class SysInterfaceInfo(object):
     """
     enumerate network related configurations
     Based on direct access to the informations on device

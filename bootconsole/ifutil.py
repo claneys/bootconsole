@@ -130,11 +130,11 @@ class NetworkInterface:
     def __init__(self, ifname):
         self.ifname = ifname
 
-        interfaces = NetworkSettings()
+        self.networksettings = NetworkSettings()
 
         self.conflines = []
-        if ifname in interfaces.conf:
-            self.conflines = interfaces.conf[ifname].splitlines()
+        if ifname in self.networksettings.conf:
+            self.conflines = self.networksettings.conf[ifname].splitlines()
 
     def _parse_attr(self, attr):
         for line in self.conflines:
@@ -161,51 +161,46 @@ class NetworkInterface:
 
         return
 
-    @staticmethod
-    def ifup(ifname):
-        return executil.getoutput("ifup", ifname)
-
-    def ifdown(ifname):
-        return executil.getoutput("ifdown", ifname)
-
-    def unconfigure_if(ifname):
+    def set_dhcp(self):
         try:
-            ifdown(ifname)
-            interfaces = NetworkSettings()
-            interfaces.set_manual(ifname)
-            executil.system("ifconfig %s 0.0.0.0" % ifname)
-            ifup(ifname)
-        except Exception, e:
-            return str(e)
+            NetworkInterface.ifdown(self.ifname)
+            self.networksettings.set_dhcp(self.ifname)
+            output = NetworkInterface.ifup(self.ifname)
 
-    @classmethod
-    def set_dhcp(ifname):
-        try:
-            ifdown(ifname)
-            interfaces = NetworkSettings()
-            interfaces.set_dhcp(ifname)
-            output = ifup(ifname)
-
-            addr = netinfo.InterfaceInfo(ifname).addr
+            addr = netinfo.InterfaceInfo(self.ifname).addr
             if not addr:
                 raise Error('Error obtaining IP address\n\n%s' % output)
 
         except Exception, e:
             return str(e)
 
-    def set_static(ifname, addr, netmask, gateway, nameservers, hostname):
+    def set_static(self, addr, netmask, gateway, nameservers, hostname):
         try:
-            ifdown(ifname)
-            interfaces = NetworkSettings()
-            interfaces.set_static(ifname, addr, netmask, gateway, nameservers, hostname)
-            output = ifup(ifname)
+            NetworkInterface.ifdown(self.ifname)
+            self.networksettings.set_static(self.ifname, addr, netmask, gateway, nameservers, hostname)
+            output = NetworkInterface.ifup(self.ifname)
 
-            addr = netinfo.InterfaceInfo(ifname).addr
+            addr = netinfo.InterfaceInfo(self.ifname).addr
             if not addr:
                 raise Error('Error obtaining IP address\n\n%s' % output)
 
         except Exception, e:
             return str(e)
+
+    def unconfigure_if(self):
+        try:
+            NetworkInterface.ifdown(self.ifname)
+            self.networksettings.set_manual(self.ifname)
+            executil.system("ifconfig %s 0.0.0.0" % self.ifname)
+            NetworkInterface.ifup(self.ifname)
+        except Exception, e:
+            return str(e)
+
+    def ifup(self):
+        return executil.getoutput("ifup", self.ifname)
+
+    def ifdown(self):
+        return executil.getoutput("ifdown", self.ifname)
 
     @property
     def method(self):

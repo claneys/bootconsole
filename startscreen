@@ -19,7 +19,7 @@ from StringIO import StringIO
 from bootconsole.dialog import Dialog
 from bootconsole.netinfo import *
 from bootconsole.ipaddr import IP, IPRange
-import bootconsole.ifutil as ifutil
+from bootconsole.ifutil import NetworkInterface, NetworkSettings
 import bootconsole.executil as executil
 import bootconsole.conf as conf
 
@@ -162,7 +162,7 @@ class SylepsConsole:
 
     def _get_default_nic(self):
         def _validip(ifname):
-            ip = InterfaceInfo(ifname).address
+            ip = SysInterfaceInfo(ifname).address
             if ip and not ip.startswith('169'):
                 return True
             return False
@@ -214,12 +214,13 @@ class SylepsConsole:
         if retcode is not self.OK:
             return "advanced"
 
+        self.ip, self.netmask, self.gateway, self.nameservers = SysInterfaceInfo(self.ifname).get_ipconf()
         return "ifconf"
 
     def _get_netmenu(self):
         menu = []
         for ifname in self.ifnames:
-            addr = InterfaceInfo(ifname).address
+            addr = SysInterfaceInfo(ifname).address
             ifmethod = ifutil.NetworkInterface(ifname).method
 
             if addr:
@@ -241,24 +242,23 @@ class SylepsConsole:
         menu.append(("DHCP", "Configure networking automatically"))
         menu.append(("StaticIP", "Configure networking manually"))
 
-        if not self.ifname == self._get_default_nic() and \
+        if self.default_nic and self.ifname != self.default_nic and \
            len(self.ifnames) > 1 and \
-           InterfaceInfo(self.ifname).address is not None:
+           self.ip is not None:
                menu.append(("Default", "Show this adapter's IP address in Usage"))
 
         return menu
 
     def _get_ifconftext(self):
-        addr, netmask, gateway, nameservers = InterfaceInfo(self.ifname).get_ipconf()
-        if addr is None:
+        if self.ip is None:
             return "Network adapter is not configured\n"
 
-        text =  "IP Address:      %s\n" % addr
-        text += "Netmask:         %s\n" % netmask
-        text += "Default Gateway: %s\n" % gateway
-        text += "Name Server(s):  %s\n\n" % " ".join(nameservers)
+        text =  "IP Address:      %s\n" % self.ip
+        text += "Netmask:         %s\n" % self.netmask
+        text += "Default Gateway: %s\n" % self.gateway
+        text += "Name Server(s):  %s\n\n" % " ".join(self.nameservers)
 
-        ifmethod = ifutil.NetworkInterface(self.ifname).method
+        ifmethod = NetworkInterface(self.ifname).method
         if ifmethod:
             text += "Networking configuration method: %s\n" % ifmethod
 
@@ -336,9 +336,8 @@ class SylepsConsole:
                                                                         iprange) ]
             return []
 
-        addr, netmask, gateway, nameservers = InterfaceInfo(self.ifname).get_ipconf()
-        input = [addr, netmask, gateway]
-        input.extend(nameservers)
+        input = [self.ip, self.netmask, self.gateway]
+        input.extend(self.nameservers)
 
         # include minimum 2 nameserver fields and 1 blank one
         if len(input) < 4:
@@ -372,20 +371,20 @@ class SylepsConsole:
 
             # unconfigure the nic if all entries are empty
             if not input[0] and not input[1] and not input[2] and not input[3]:
-                ifutil.unconfigure_if(self.ifname)
+                NetworkInterface(self.ifname).unconfigure_if()
                 break
 
-            addr, netmask, gateway = input[:3]
-            nameservers = input[3:]
-            for i in range(nameservers.count('')):
-                nameservers.remove('')
+            new_ip, new_netmask, new_gateway = input[:3]
+            new_nameservers = input[3:]
+            for i in range(new_nameservers.count('')):
+                new_nameservers.remove('')
 
-            err = _validate(addr, netmask, gateway, nameservers)
+            err = _validate(new_ip, new_netmask, new_gateway, new_nameservers)
             if err:
                 err = "\n".join(err)
             else:
-                err = ifutil.set_static(self.ifname, addr, netmask,
-                                        gateway, nameservers, self.net.hostname)
+                err = NetworkInterface(self.ifname).set_static(new_ip, new_netmask,
+                                        new_gateway, new_nameservers, self.net.hostname)
                 if not err:
                     break
 
@@ -464,7 +463,6 @@ class SylepsConsole:
             for i in range(len(input)):
                 input[i] = input[i].strip()
             
-            ip = InterfaceInfo(self.ifname).address
             hostname = input[0]
             peer_hostname = input[1]
             sups_hostname = input[2]
@@ -475,7 +473,7 @@ class SylepsConsole:
             if err:
                 err = "\n".join(err)
             else:
-                err = hosts_conf.set_hosts(ip, hostname, peer_hostname, sups_hostname, peer_ip, sups_ip, alias)
+                err = hosts_conf.set_hosts(self.ip, hostname, peer_hostname, sups_hostname, peer_ip, sups_ip, alias)
                 if not err:
                     break
 
@@ -572,7 +570,7 @@ class SylepsConsole:
             return "networking"
 
         #display usage
-        ip = InterfaceInfo(ifname).address
+        ip = SysInterfaceInfo(ifname).address
         hostname = self.net.hostname
 
         #backwards compatible - use usage.txt if it exists
