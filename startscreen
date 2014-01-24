@@ -142,6 +142,7 @@ class SylepsConsole:
     CANCEL = 1
     config = conf.Conf("bootconsole.conf")
     net = NetworkInfo()
+    ifnames = net.get_filtered_ifnames()
     
     def __init__(self, advanced_enabled=True):
         # Console attribute
@@ -161,7 +162,6 @@ class SylepsConsole:
         if self._get_default_nic():
             self.default_nic = self._get_default_nic()
             self.default_ip, self.default_netmask, self.default_gateway, self.default_nameservers = SysInterfaceInfo(self.default_nic).get_ipconf()
-        self.ifnames = self.net.get_filtered_ifnames()
 
     def _get_serial(self):
         prefix = { 'oradb11g': 'db', 'ofm11g': 'as'}.get(self.alias, 'Invalid_alias')
