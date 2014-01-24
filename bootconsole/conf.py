@@ -48,14 +48,14 @@ class Conf:
     def set_param(self, param_key, new_value):
         # Define description of parameters
         # And assig new value to parameter
-        param_desc = { 'default_nic' : '# set default network interface', 'alias' : '# set alias of this VM\n# set alias of this VM', }[param_key]
+        param_desc = { 'default_nic' : '# set default network interface', 'alias' : '# set alias of this VM\n# must be "ofm11g" or "oradb11g".', }
         self.param[param_key] = new_value
 
         # Write changes
         fh = open(self.conf_file, 'w')
         for k,v in self.param.items():
             k = k.strip()
-            fh.write('%s\n%s %s' % (param_desc, k, v))
+            fh.write('%s\n%s %s\n\n' % (param_desc[k], k, v))
 
         fh.close()
 

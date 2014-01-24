@@ -568,6 +568,7 @@ class SylepsConsole:
     def keep_ifconf(self):
         param = 'default_nic'
         self.config.set_param(param, self.default_nic)
+        self.default_nic_set = True
 
         text = self._get_ifconftext(self.default_nic)
         if self.console.yesno("%s\n\nAre we keeping this network configuration ?"% text, 20, 60) == self.OK:
