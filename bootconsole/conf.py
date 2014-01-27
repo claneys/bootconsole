@@ -69,7 +69,6 @@ class Conf:
                 peer_alias = "oradb11g"
             else:
                 peer_alias = "ofm11g"
-            sups_alias = "sups"
 
             ifutil.NetworkSettings().set_hostname(hostname)
 
@@ -77,15 +76,19 @@ class Conf:
             is_custom = False
             fh = open(self.conf_file, 'r')
             for line in fh.readlines():
+                if re.search(alias, line) is not None or re.search(peer_alias, line) is not None:
+                    continue
+                if line.startswith('# End Syleps hosts'):
+                    is_custom = False
+                    continue
                 if is_custom == True:
                     continue
                 if line.startswith('# Syleps hosts'):
                     is_custom = True
                     continue
-                elif line.startswith('# End Syleps hosts'):
-                    is_custom = False
-                    continue
                 original_content.append(line)
+
+            fh.close()
 
             fh = open(self.conf_file, 'w')
             fh.writelines(original_content)

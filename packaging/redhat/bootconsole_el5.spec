@@ -1,6 +1,6 @@
 %define name bootconsole
-%define version 1.3
-%define release el5_3
+%define version 1.4
+%define release el5_6
 
 Summary: Boot Ncurses Console configuration
 Name: %{name}
@@ -38,16 +38,21 @@ rm -rf $RPM_BUILD_ROOT
 
 %post
 # Add Header in bootconsole managed files
-grep 'SYLEPS CONFCONSOLE' /etc/sysconfig/network-scripts/ifcfg-eth0
-[ -n $? ] && sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" /etc/sysconfig/network-scripts/ifcfg-eth0
-grep 'SYLEPS CONFCONSOLE' /etc/sysconfig/network
-[ -n $? ] && sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" /etc/sysconfig/network
-grep 'startscreen' /etc/inittab
-[ -n $? ] && sed -i'.rpmsave' "s/1:2345:respawn:.*mingetty tty1/1:2345:respawn:\/usr\/bin\/startscreen/" /etc/inittab
+ifcfg=$(grep 'SYLEPS CONFCONSOLE' /etc/sysconfig/network-scripts/ifcfg-eth0)
+network=$(grep 'SYLEPS CONFCONSOLE' /etc/sysconfig/network)
+inittab=$(grep 'startscreen' /etc/inittab)
+[ -z "$ifcfg" ] && sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" /etc/sysconfig/network-scripts/ifcfg-eth0
+[ -z "$network" ] && sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" /etc/sysconfig/network
+[ -z "$inittab" ] && sed -i'.rpmsave' "s/1:2345:respawn:.*mingetty tty1/1:2345:respawn:\/usr\/bin\/startscreen/" /etc/inittab
+exit 0
 
 %postun
-# Remove Header in bootconsole managed files
-sed -i -e "/# SYLEPS CONFCONSOLE/d" -e "/# Don't modify this part \!/d" /etc/sysconfig/network-scripts/ifcfg-eth0
-sed -i -e "/# SYLEPS CONFCONSOLE/d" -e "/# Don't modify this part \!/d" /etc/sysconfig/network
-sed -i -e "/# SYLEPS CONFCONSOLE/d" -e "/# Don't modify this part \!/d" /etc/resolv.conf
-sed -i "s/1:2345:respawn:.\/usr\/bin\/startscreen/1:2345:respawn:\/sbin\/mingetty tty1/" /etc/inittab
+# $1 = 0 uninstall, $1 = 1 upgrade
+if [ "$1" = "0" ]
+then
+    # Remove Header in bootconsole managed files
+    sed -i -e "/# SYLEPS CONFCONSOLE/d" -e "/# Don't modify this part \!/d" /etc/sysconfig/network-scripts/ifcfg-eth0
+    sed -i -e "/# SYLEPS CONFCONSOLE/d" -e "/# Don't modify this part \!/d" /etc/sysconfig/network
+    sed -i -e "/# SYLEPS CONFCONSOLE/d" -e "/# Don't modify this part \!/d" /etc/resolv.conf
+    sed -i "s/1:2345:respawn:.\/usr\/bin\/startscreen/1:2345:respawn:\/sbin\/mingetty tty1/" /etc/inittab
+fi
