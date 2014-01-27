@@ -505,7 +505,7 @@ class SylepsConsole:
             if err:
                 err = "\n".join(err)
             else:
-                err = hosts_conf.set_hosts(ip, hostname, peer_hostname, sups_hostname, peer_ip, sups_ip, alias)
+                err = hosts_conf.set_hosts(ip, hostname, peer_hostname, sups_hostname, peer_ip, sups_ip, self.alias)
                 if not err:
                     break
 
@@ -604,7 +604,7 @@ class SylepsConsole:
         #if interfaces but no default - ask if we keep that actual network configuration
         ifname = self._get_default_nic()
         if not self.default_nic_set:
-            error = Network configuration need your approval."
+            error = "Network configuration need your approval."
             if not self.advanced_enabled:
                 fatal(error)
             self.console.msgbox("Error", error)
