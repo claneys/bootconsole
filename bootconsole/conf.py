@@ -63,7 +63,7 @@ class Conf:
             fh.write(line)
         fh.close()
 
-    def set_hosts(self, ip, hostname, peer_hostname, sups_hostname, peer_ip, sups_ip, alias):
+    def set_hosts(self, ip, hostname, peer_hostname, peer_ip, alias):
         try:
             if alias == "ofm11g":
                 peer_alias = "oradb11g"
@@ -97,7 +97,6 @@ class Conf:
             fh.write("# Don't modifiy this part !\n")
             fh.write(ip + "\t" + hostname + "\t" + hostname.split('.', 1)[0] + "\t" + alias +"\n")
             fh.write(peer_ip + "\t" + peer_hostname + "\t" + peer_hostname.split('.', 1)[0] + "\t" + peer_alias+"\n")
-            fh.write(sups_ip + "\t" + sups_hostname + "\t" + sups_hostname.split('.', 1)[0] + "\t" + sups_alias+"\n")
             fh.write("# End Syleps hosts\n")
             fh.close()
         except Exception, e:
