@@ -1,6 +1,6 @@
 %define name bootconsole
 %define version 1.5
-%define release el5_6
+%define release el5_7
 
 Summary: Boot Ncurses Console configuration
 Name: %{name}
@@ -55,4 +55,10 @@ then
     sed -i -e "/# SYLEPS CONFCONSOLE/d" -e "/# Don't modify this part \!/d" /etc/sysconfig/network
     sed -i -e "/# SYLEPS CONFCONSOLE/d" -e "/# Don't modify this part \!/d" /etc/resolv.conf
     sed -i "s/1:2345:respawn:.\/usr\/bin\/startscreen/1:2345:respawn:\/sbin\/mingetty tty1/" /etc/inittab
+    # And validated file
+    if [ -f /etc/bootconsole/validated ]
+    then
+        chattr -i /etc/bootconsole/validated
+        rm -f /etc/bootconsole/validated
+    fi
 fi
