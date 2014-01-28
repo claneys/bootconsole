@@ -40,8 +40,8 @@ class Conf:
                 op = line
                 val = ''
                 
-                if IP.is_legal(op):
-                    self.param[op] = val.split()
+            if IP.is_legal(op):
+                self.param[op] = val.split()
                 continue
             self.param[op] = val
 
