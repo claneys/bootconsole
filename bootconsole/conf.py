@@ -63,13 +63,12 @@ class Conf:
             fh.write(line)
         fh.close()
 
-    def set_hosts(self, ip, hostname, peer_hostname, sups_hostname, peer_ip, sups_ip, alias):
+    def set_hosts(self, ip, hostname, peer_hostname, peer_ip, alias):
         try:
             if alias == "ofm11g":
                 peer_alias = "oradb11g"
             else:
                 peer_alias = "ofm11g"
-            sups_alias = "sups"
 
             ifutil.NetworkSettings().set_hostname(hostname)
 
@@ -77,15 +76,19 @@ class Conf:
             is_custom = False
             fh = open(self.conf_file, 'r')
             for line in fh.readlines():
+                if re.search(alias, line) is not None or re.search(peer_alias, line) is not None:
+                    continue
+                if line.startswith('# End Syleps hosts'):
+                    is_custom = False
+                    continue
                 if is_custom == True:
                     continue
                 if line.startswith('# Syleps hosts'):
                     is_custom = True
                     continue
-                elif line.startswith('# End Syleps hosts'):
-                    is_custom = False
-                    continue
                 original_content.append(line)
+
+            fh.close()
 
             fh = open(self.conf_file, 'w')
             fh.writelines(original_content)
@@ -97,7 +100,6 @@ class Conf:
             fh.write("# Don't modifiy this part !\n")
             fh.write(ip + "\t" + hostname + "\t" + hostname.split('.', 1)[0] + "\t" + alias +"\n")
             fh.write(peer_ip + "\t" + peer_hostname + "\t" + peer_hostname.split('.', 1)[0] + "\t" + peer_alias+"\n")
-            fh.write(sups_ip + "\t" + sups_hostname + "\t" + sups_hostname.split('.', 1)[0] + "\t" + sups_alias+"\n")
             fh.write("# End Syleps hosts\n")
             fh.close()
         except Exception, e:

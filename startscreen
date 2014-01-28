@@ -432,20 +432,17 @@ class SylepsConsole:
 
 
     def _adv_hosts(self):
-        def _validate(hostname, peer_hostname, sups_hostname, peer_ip, sups_ip):
+        def _validate(hostname, peer_hostname, peer_ip):
             errors = []
-            if not peer_ip or not sups_ip:
+            if not peer_ip:
                 errors.append("IP address missing")
-            elif not ipaddr.is_legal_ip(peer_ip) or not ipaddr.is_legal_ip(sups_ip):
+            elif not ipaddr.is_legal_ip(peer_ip):
                 errors.append("Invalid IP address")
 
             if re.search("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$", hostname) == None:
                 errors.append('Hostname not compliant. It must be the FQDN of the host')
 
             if re.search("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$", peer_hostname) == None:
-                errors.append('Hostname not compliant. It must be the FQDN of the host')
-
-            if re.search("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$", sups_hostname) == None:
                 errors.append('Hostname not compliant. It must be the FQDN of the host')
 
             if errors:
@@ -462,15 +459,12 @@ class SylepsConsole:
             label_peer_hostname = "DB Hostname"
             input[1] = get_ip_or_hostname_from_alias('oradb11g', hosts_conf, 'hostname')
             label_peer_ip = "DB IP address"
-            input[3] = get_ip_or_hostname_from_alias('oradb11g', hosts_conf, 'ip')
+            input[2] = get_ip_or_hostname_from_alias('oradb11g', hosts_conf, 'ip')
         else:
             label_peer_hostname = "AS Hostname"
             input[1] = get_ip_or_hostname_from_alias('ofm11g', hosts_conf, 'hostname')
             label_peer_ip = "AS IP address"
-            input[3] = get_ip_or_hostname_from_alias('ofm11g', hosts_conf, 'ip')
-
-        input[2] = get_ip_or_hostname_from_alias('sups', hosts_conf, 'hostname')
-        input[4] = get_ip_or_hostname_from_alias('sups', hosts_conf, 'ip')
+            input[2] = get_ip_or_hostname_from_alias('ofm11g', hosts_conf, 'ip')
 
         field_width = 50
         field_limit = 50
@@ -479,9 +473,7 @@ class SylepsConsole:
             fields = [
                 ("Hostname of this server", input[0], field_width, field_limit),
                 (label_peer_hostname, input[1], field_width, field_limit),
-                ("SUPrintServer Hostname", input[2], field_width, field_limit),
-                (label_peer_ip, input[3], field_width, field_limit),
-                ("SUPrintServer IP address", input[4], field_width, field_limit)
+                (label_peer_ip, input[2], field_width, field_limit),
             ]
 
             text = "Set /etc/hosts entries (Must be FQDN)"
@@ -497,15 +489,13 @@ class SylepsConsole:
             ip = ifutil.get_ipconf(ifname)[0]
             hostname = input[0]
             peer_hostname = input[1]
-            sups_hostname = input[2]
-            peer_ip = input[3]
-            sups_ip = input[4]
+            peer_ip = input[2]
 
-            err = _validate(hostname, peer_hostname, sups_hostname, peer_ip, sups_ip)
+            err = _validate(hostname, peer_hostname, peer_ip)
             if err:
                 err = "\n".join(err)
             else:
-                err = hosts_conf.set_hosts(ip, hostname, peer_hostname, sups_hostname, peer_ip, sups_ip, alias)
+                err = hosts_conf.set_hosts(ip, hostname, peer_hostname, peer_ip, self.alias)
                 if not err:
                     break
 
@@ -604,7 +594,7 @@ class SylepsConsole:
         #if interfaces but no default - ask if we keep that actual network configuration
         ifname = self._get_default_nic()
         if not self.default_nic_set:
-            error = Network configuration need your approval."
+            error = "Network configuration need your approval."
             if not self.advanced_enabled:
                 fatal(error)
             self.console.msgbox("Error", error)
