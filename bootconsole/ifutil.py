@@ -49,6 +49,7 @@ class NetworkSettings:
 
                 if line.startswith("DEVICE"):
                     ifname = line.split('=')[1]
+                    ifname = ifname.strip('"')
                     self.conf[ifname] = line + "\n"
                 elif ifname:
                     self.conf[ifname] += line + "\n"

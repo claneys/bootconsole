@@ -20,7 +20,7 @@ from StringIO import StringIO
 from bootconsole.dialog import Dialog
 from bootconsole.netinfo import *
 from bootconsole.ipaddr import IP, IPRange
-from bootconsole.ifutil import NetworkInterface, NetworkSettings
+from bootconsole.ifutil import NetworkInterface
 import bootconsole.executil as executil
 import bootconsole.conf as conf
 
