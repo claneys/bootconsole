@@ -164,11 +164,11 @@ class NetworkInterface:
 
     def set_dhcp(self):
         try:
-            NetworkInterface.ifdown(self.ifname)
+            self.ifdown()
             self.networksettings.set_dhcp(self.ifname)
-            output = NetworkInterface.ifup(self.ifname)
+            output = self.ifup()
 
-            addr = netinfo.InterfaceInfo(self.ifname).addr
+            addr = netinfo.SysInterfaceInfo(self.ifname).address
             if not addr:
                 raise Error('Error obtaining IP address\n\n%s' % output)
 
@@ -177,11 +177,11 @@ class NetworkInterface:
 
     def set_static(self, addr, netmask, gateway, nameservers, hostname):
         try:
-            NetworkInterface.ifdown(self.ifname)
+            self.ifdown()
             self.networksettings.set_static(self.ifname, addr, netmask, gateway, nameservers, hostname)
-            output = NetworkInterface.ifup(self.ifname)
+            output = self.ifup()
 
-            addr = netinfo.InterfaceInfo(self.ifname).addr
+            addr = netinfo.SysInterfaceInfo(self.ifname).address
             if not addr:
                 raise Error('Error obtaining IP address\n\n%s' % output)
 
@@ -190,10 +190,10 @@ class NetworkInterface:
 
     def unconfigure_if(self):
         try:
-            NetworkInterface.ifdown(self.ifname)
+            self.ifdown()
             self.networksettings.set_manual(self.ifname)
             executil.system("ifconfig %s 0.0.0.0" % self.ifname)
-            NetworkInterface.ifup(self.ifname)
+            self.ifup()
         except Exception, e:
             return str(e)
 

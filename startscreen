@@ -20,7 +20,7 @@ from StringIO import StringIO
 from bootconsole.dialog import Dialog
 from bootconsole.netinfo import *
 from bootconsole.ipaddr import IP, IPRange
-from bootconsole.ifutil import NetworkInterface
+from bootconsole.ifutil import NetworkInterface, NetworkSettings
 import bootconsole.executil as executil
 import bootconsole.conf as conf
 
@@ -418,7 +418,7 @@ class SylepsConsole:
 
     def _ifconf_dhcp(self):
         self.console.infobox("Requesting DHCP for %s..." % self.ifname)
-        err = ifutil.set_dhcp(self.ifname)
+        err = NetworkInterface(self.ifname).set_dhcp()
         if err:
             self.console.msgbox("Error", err)
 
@@ -486,7 +486,7 @@ class SylepsConsole:
             if err:
                 err = "\n".join(err)
             else:
-                err = hosts_conf.set_hosts(ip, hostname, peer_hostname, peer_ip, self.alias)
+                err = hosts_conf.set_hosts(self.default_ip, hostname, peer_hostname, peer_ip, self.alias)
                 if not err:
                     break
 
