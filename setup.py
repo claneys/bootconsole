@@ -6,7 +6,7 @@ from distutils.core import setup
 import bootconsole
 
 setup (name = "bootconsole",
-       version = "1.5",
+       version = "1.6",
        description = "Boot Ncurses Console configuration",
        include_package_data=True,
        author = "Romain Forlot",
@@ -14,6 +14,6 @@ setup (name = "bootconsole",
        url = "http:/github.com/claneys/bootconsole",
        packages = ['bootconsole', ''],
        data_files = [('/etc/bootconsole', ['conf/usage.txt',
-           'conf/bootconsole.conf'])],
+           'conf/bootconsole.conf']), ('/etc/profile.d', ['conf/alias.sh'])],
        scripts = ['startscreen', 'sic_seal']
       )
