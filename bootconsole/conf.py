@@ -4,9 +4,8 @@
 
 import re
 import os
-import executil
-import ifutil
-import ipaddr
+from ifutil import NetworkSettings
+from ipaddr import IP
 
 class Error(Exception):
     pass
@@ -40,27 +39,24 @@ class Conf:
             except ValueError:
                 op = line
                 val = ''
-            if ipaddr.is_legal_ip(op):
+                
+            if IP.is_legal(op):
                 self.param[op] = val.split()
                 continue
             self.param[op] = val
 
-    def set_default_nic(self, ifname):
-        self.param['default_nic'] = ifname
+    def set_param(self, param_key, new_value):
+        # Define description of parameters
+        # And assig new value to parameter
+        param_desc = { 'default_nic' : '# set default network interface', 'alias' : '# set alias of this VM\n# must be "ofm11g" or "oradb11g".', }
+        self.param[param_key] = new_value
 
-        fh = open(self.conf_file, 'r')
-        content = fh.readlines()
-        fh.close
-
-        if not "default_nic" in content:
-            content.insert(1, 'default_nic')
-
+        # Write changes
         fh = open(self.conf_file, 'w')
-        for line in content:
-            if line.startswith('default_nic'):
-                fh.write("default_nic %s\n" % ifname)
-                continue
-            fh.write(line)
+        for k,v in self.param.items():
+            k = k.strip()
+            fh.write('%s\n%s %s\n\n' % (param_desc[k], k, v))
+
         fh.close()
 
     def set_hosts(self, ip, hostname, peer_hostname, peer_ip, alias):
@@ -70,7 +66,7 @@ class Conf:
             else:
                 peer_alias = "ofm11g"
 
-            ifutil.NetworkSettings().set_hostname(hostname)
+            NetworkSettings().set_hostname(hostname)
 
             original_content = []
             is_custom = False
@@ -87,8 +83,6 @@ class Conf:
                     is_custom = True
                     continue
                 original_content.append(line)
-
-            fh.close()
 
             fh = open(self.conf_file, 'w')
             fh.writelines(original_content)

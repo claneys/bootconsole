@@ -1,10 +1,10 @@
 General appliance informations :
 
-Template version : [as|db]131230
+Template version : [as|db]140128
 Appliance S/N : $serial
 Oracle Database version: 11.2.0.3.8
 Oracle Forms and Report version : 11.1.2.2.0
-Sydel Univers version : 12.1
+Sydel Univers version : 12.2
 
 Server informations :
 
