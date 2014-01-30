@@ -165,7 +165,7 @@ class SylepsConsole:
 
     def _get_serial(self):
         prefix = { 'oradb11g': 'db', 'ofm11g': 'as'}.get(self.alias, 'Invalid_alias')
-        fd = time.gmtime(os.stat(conf.path('blkid/blkid.tab'))[-2])
+        fd = time.gmtime(os.stat(conf.path('usage.txt'))[-2])
         fd = time.strftime('%y%m%d', fd)
         try:
             uuid = file(conf.path('validated'), 'r').readline()
