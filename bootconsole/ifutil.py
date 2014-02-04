@@ -89,7 +89,7 @@ class NetworkSettings:
 
     def set_static(self, ifname, addr, netmask, gateway=None, nameservers=[], hostname=None):
         filepath = self._filepath_assembler(ifname)
-        ifconf = "DEVICE=%s\nBOOTPROTO=dhcp\nONBOOT=yes" % (ifname)
+        ifconf = "DEVICE=%s\nBOOTPROTO=none\nONBOOT=yes" % (ifname)
         ifconf = ["DEVICE=%s" % ifname,
                   "BOOTPROTO=none",
                   "IPADDR=%s" % addr,
