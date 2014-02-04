@@ -159,6 +159,7 @@ class SylepsConsole:
         self.advanced_enabled = advanced_enabled
 
         # Net attributes
+        self.ifnames = NetworkInfo.get_filtered_ifnames()
         if self._get_default_nic():
             self.default_nic = self._get_default_nic()
             self.default_ip, self.default_netmask, self.default_gateway, self.default_nameservers = SysInterfaceInfo(self.default_nic).get_ipconf()
@@ -189,8 +190,8 @@ class SylepsConsole:
             ifname = None
 
         if ifname:
-            self.default_nic_set = True
             if _validip(ifname):
+                self.default_nic_set = True
                 return ifname
 
         for ifname in self.ifnames:
