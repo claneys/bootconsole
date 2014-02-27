@@ -172,7 +172,7 @@ class SylepsConsole:
         try:
             uuid = file(conf.path('validated'), 'r').readline()
         except:
-            raise('This VM has never been validated')
+            raise Error('This VM has never been validated')
             
         return "%s-%s-%s" % (prefix, fd, uuid)
 
