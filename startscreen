@@ -159,6 +159,8 @@ class SylepsConsole:
         self.advanced_enabled = advanced_enabled
 
         # Net attributes
+        self.ifnames = NetworkInfo.get_filtered_ifnames()
+        self.default_nic = None
         if self._get_default_nic():
             self.default_nic = self._get_default_nic()
             self.default_ip, self.default_netmask, self.default_gateway, self.default_nameservers = SysInterfaceInfo(self.default_nic).get_ipconf()
@@ -170,7 +172,7 @@ class SylepsConsole:
         try:
             uuid = file(conf.path('validated'), 'r').readline()
         except:
-            raise('This VM has never been validated')
+            raise Error('This VM has never been validated')
             
         return "%s-%s-%s" % (prefix, fd, uuid)
 
@@ -223,6 +225,7 @@ class SylepsConsole:
         # if only 1 interface, dont display menu - just configure it
         if len(self.ifnames) == 1:
             self.ifname = self.ifnames[0]
+            self.default_ip, self.default_netmask, self.default_gateway, self.default_nameservers = SysInterfaceInfo(self.ifname).get_ipconf()
             return "ifconf"
 
         # display networking
@@ -595,6 +598,7 @@ class SylepsConsole:
             if not self.advanced_enabled:
                 fatal(error)
             self.console.msgbox("Error", error)
+            self.default_nic = self.config.param['default_nic']
             return "networking"
 
         #display usage
