@@ -1,6 +1,6 @@
 %define name bootconsole
-%define version 1.7
-%define release el5_7
+%define version 1.8
+%define release 1.el6
 
 Summary: Boot Ncurses Console configuration
 Name: %{name}
@@ -8,6 +8,8 @@ Version: %{version}
 Release: %{release}
 Source0: %{name}-%{version}.tar.gz
 License: GPL
+Source1: %{name}.conf
+Source2: start-ttys.override
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Prefix: %{_prefix}
@@ -29,21 +31,24 @@ python setup.py build
 
 %install
 python setup.py install --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES
+%{__install} -D -m0644 %{SOURCE1} %{buildroot}%{_sysconfdir}/init/%{name}.conf
+%{__install} -D -m0644 %{SOURCE2} %{buildroot}%{_sysconfdir}/init/start-ttys.override
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files -f INSTALLED_FILES
 %defattr(-,root,root)
+%config %{_sysconfdir}/init/%{name}.conf
+%config %{_sysconfdir}/init/start-ttys.override
 
 %post
 # Add Header in bootconsole managed files
-ifcfg=$(grep 'SYLEPS CONFCONSOLE' /etc/sysconfig/network-scripts/ifcfg-eth0)
-network=$(grep 'SYLEPS CONFCONSOLE' /etc/sysconfig/network)
-inittab=$(grep 'startscreen' /etc/inittab)
-[ -z "$ifcfg" ] && sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" /etc/sysconfig/network-scripts/ifcfg-eth0
-[ -z "$network" ] && sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" /etc/sysconfig/network
-[ -z "$inittab" ] && sed -i'.rpmsave' "s/1:2345:respawn:.*mingetty tty1/1:2345:respawn:\/usr\/bin\/startscreen/" /etc/inittab
+ifcfg=$(grep 'SYLEPS CONFCONSOLE' %{_sysconfdir}/sysconfig/network-scripts/ifcfg-eth0)
+network=$(grep 'SYLEPS CONFCONSOLE' %{_sysconfdir}/sysconfig/network)
+inittab=$(grep 'startscreen' %{_sysconfdir}/inittab)
+[ -z "$ifcfg" ] && sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" %{_sysconfdir}/sysconfig/network-scripts/ifcfg-eth0
+[ -z "$network" ] && sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" %{_sysconfdir}/sysconfig/network
 exit 0
 
 %postun
@@ -51,14 +56,13 @@ exit 0
 if [ "$1" = "0" ]
 then
     # Remove Header in bootconsole managed files
-    sed -i -e "/# SYLEPS CONFCONSOLE/d" -e "/# Don't modify this part \!/d" /etc/sysconfig/network-scripts/ifcfg-eth0
-    sed -i -e "/# SYLEPS CONFCONSOLE/d" -e "/# Don't modify this part \!/d" /etc/sysconfig/network
-    sed -i -e "/# SYLEPS CONFCONSOLE/d" -e "/# Don't modify this part \!/d" /etc/resolv.conf
-    sed -i "s/1:2345:respawn:.\/usr\/bin\/startscreen/1:2345:respawn:\/sbin\/mingetty tty1/" /etc/inittab
+    sed -i -e "/# SYLEPS CONFCONSOLE/d" -e "/# Don't modify this part \!/d" %{_sysconfdir}/sysconfig/network-scripts/ifcfg-eth0
+    sed -i -e "/# SYLEPS CONFCONSOLE/d" -e "/# Don't modify this part \!/d" %{_sysconfdir}/sysconfig/network
+    sed -i -e "/# SYLEPS CONFCONSOLE/d" -e "/# Don't modify this part \!/d" %{_sysconfdir}/resolv.conf
     # And validated file
-    if [ -f /etc/bootconsole/validated ]
+    if [ -f %{_sysconfdir}/bootconsole/validated ]
     then
-        chattr -i /etc/bootconsole/validated
-        rm -f /etc/bootconsole/validated
+        chattr -i %{_sysconfdir}/bootconsole/validated
+        rm -f %{_sysconfdir}/bootconsole/validated
     fi
 fi
