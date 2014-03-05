@@ -147,8 +147,8 @@ class SylepsConsole:
     def __init__(self, advanced_enabled=True):
         # Console attribute
         title = "Syleps Linux Configuration Console"
-        self.width = 75
-        self.height = 22
+        self.width = 80
+        self.height = 25
         self.alias = self.config.param['alias']
 
         self.console = Console(title, self.width, self.height)
