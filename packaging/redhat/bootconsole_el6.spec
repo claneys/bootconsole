@@ -1,6 +1,6 @@
 %define name bootconsole
 %define version 1.9
-%define release 1.el6
+%define release21.el6
 
 Summary: Boot Ncurses Console configuration
 Name: %{name}
@@ -39,6 +39,8 @@ rm -rf $RPM_BUILD_ROOT
 
 %files -f INSTALLED_FILES
 %defattr(-,root,root)
+%config %{_sysconfdir}/%{name}/%{name}.conf
+%config %{_sysconfdir}/%{name}/usage.txt
 %config %{_sysconfdir}/init/%{name}.conf
 %config %{_sysconfdir}/init/start-ttys.override
 
