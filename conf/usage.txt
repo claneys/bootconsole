@@ -1,6 +1,6 @@
 General appliance informations :
 
-Template version : [as|db]140128
+Template version : [as|db]YYMMDD
 Appliance S/N : $serial
 Oracle Database version: 11.2.0.3.8
 Oracle Forms and Report version : 11.1.2.2.0
@@ -10,3 +10,7 @@ Server informations :
 
 Ip address : $ipaddr
 Hostname : $hostname
+
+
+
+\Z1<Ctrl+Alt+F1> Main screen                        <Ctrl+Alt+F2> Terminal
