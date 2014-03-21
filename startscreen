@@ -205,13 +205,10 @@ class SylepsConsole:
         items = []
         items.append(("Networking", "Configure appliance networking"))
         items.append(("Hosts", "Configure /etc/hosts and hostname settings"))
-
-        if self.installer.available:
-            items.append(("Install", "Install to hard disk"))
+        items.append(("Timezone", "Configure system timezone"))
 
         items.append(("Reboot", "Reboot the appliance"))
         items.append(("Shutdown", "Shutdown the appliance"))
-#        items.append(("Quit", "Quit the configuration console"))
 
         return items
 
@@ -497,12 +494,12 @@ class SylepsConsole:
 
         return "advanced"
 
-    def _adv_install(self):
-        text = "Please note that any changes you may have made to the\n"
-        text += "live system will *not* be installed to the hard disk.\n\n"
-        self.console.msgbox("Installer", text)
-
-        self.installer.execute()
+    def _adv_timezone(self):
+        if not os.path.exists('/usr/sbin/timeconfig'):
+            self.console.msgbox("Error", "system-config-date rpm not installed.\nPlease install it.")
+            return "advanced"
+            
+        executil.system('/usr/sbin/timeconfig')
         return "advanced"
 
     def _shutdown(self, text, opt):
