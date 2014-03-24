@@ -112,31 +112,6 @@ class Console:
                              title=title, fields=fields,
                              ok_label=ok_label, cancel_label=cancel_label)
 
-class Installer:
-    def __init__(self, path):
-        self.path = path
-        self.available = self._is_available()
-
-    def _is_available(self):
-        if not os.path.exists(self.path):
-            return False
-
-        fh = file('/proc/cmdline')
-        cmdline = fh.readline()
-        fh.close()
-
-        for cmd in cmdline.split():
-            if cmd == "boot=casper":
-                return True
-
-        return False
-
-    def execute(self):
-        if not self.available:
-            raise Error("installer is not available to be executed")
-
-        executil.system(self.path)
-
 class SylepsConsole:
     OK = 0
     CANCEL = 1
