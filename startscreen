@@ -129,8 +129,6 @@ class SylepsConsole:
         self.console = Console(title, self.width, self.height)
         self.appname = "Syleps Linux %s" % self.net.hostname.upper()
 
-        self.installer = Installer(path='/usr/bin/di-live')
-
         self.advanced_enabled = advanced_enabled
 
         # Net attributes
