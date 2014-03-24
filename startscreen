@@ -406,10 +406,12 @@ class SylepsConsole:
                 errors.append("Invalid IP address")
 
             if re.search("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$", hostname) == None:
-                errors.append('Hostname not compliant. It must be the FQDN of the host')
+                if re.search("^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])$", hostname) == None:
+                    errors.append('Hostname not compliant. Illegal char, just alphanumeric and "-","." are authorized')
 
             if re.search("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$", peer_hostname) == None:
-                errors.append('Hostname not compliant. It must be the FQDN of the host')
+                if re.search("^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])$", peer_hostname) == None:
+                    errors.append('Hostname not compliant. Illegal char, just alphanumeric and "-","." are authorized')
 
             if errors:
                 return errors
