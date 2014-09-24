@@ -5,3 +5,5 @@ BOOTCONSOLE_VFILE=/etc/bootconsole/validated
 [ -f $BOOTCONSOLE_VFILE ] && chattr -i $BOOTCONSOLE_VFILE
 uuidgen > $BOOTCONSOLE_VFILE
 chattr +i $BOOTCONSOLE_VFILE
+
+chkconfig osad off

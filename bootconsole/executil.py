@@ -39,38 +39,33 @@ class ExecError(Exception):
             str += "\n" + self.output
         return str
 
-def fmt_command(command, *args):
-    return command + " ".join([mkarg(arg) for arg in args])
-
-def system(command, *args):
-    """Executes <command> with <*args> -> None
+def system(command, careabouterrors=True):
+    """Executes <command>  -> None
     If command returns non-zero exitcode raises ExecError"""
 
     sys.stdout.flush()
     sys.stderr.flush()
 
-    command = fmt_command(command, *args)
     error = os.system(command)
-    if error:
+    if error and careabouterrors:
         exitcode = os.WEXITSTATUS(error)
         raise ExecError(command, exitcode)
 
-def getoutput(command, *args):
-    """Executes <command> with <*args> -> output
+def getoutput(command, careabouterrors=True):
+    """Executes <command> -> output
     If command returns non-zero exitcode raises ExecError"""
 
-    command = fmt_command(command, *args)
     error, output = commands.getstatusoutput(command)
-    if error:
+    if error and careabouterrors:
         exitcode = os.WEXITSTATUS(error)
         raise ExecError(command, exitcode, output)
 
     return output
 
-def getoutput_popen(command, input=None):
+def getoutput_popen(command, careabouterrors=True, input=None):
     """Uses subprocess.Popen to execute <command>, piping <input> into stdin.
     If command returns non-zero exitcode raise ExecError.
-    
+
     Return command output.
     """
 
@@ -90,7 +85,7 @@ def getoutput_popen(command, input=None):
     if errstr is None:
         errstr = child.stderr.read()
 
-    if errno != 0:
+    if errno != 0 and careabouterrors:
         raise ExecError(command, errno, errstr)
 
     return outstr

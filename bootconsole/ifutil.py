@@ -199,10 +199,10 @@ class NetworkInterface:
             return str(e)
 
     def ifup(self):
-        return executil.getoutput("ifup", self.ifname)
+        return executil.getoutput("ifup %s"% self.ifname)
 
     def ifdown(self):
-        return executil.getoutput("ifdown", self.ifname)
+        return executil.getoutput("ifdown %s"% self.ifname)
 
     @property
     def method(self):

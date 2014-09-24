@@ -23,6 +23,7 @@ from bootconsole.ipaddr import IP, IPRange
 from bootconsole.ifutil import NetworkInterface
 import bootconsole.executil as executil
 import bootconsole.conf as conf
+import bootconsole.block as block
 
 os.environ['TERM'] = 'xterm'
 
@@ -116,9 +117,9 @@ class SylepsConsole:
     OK = 0
     CANCEL = 1
     config = conf.Conf("bootconsole.conf")
-    net = NetworkInfo()
-    ifnames = net.get_filtered_ifnames()
-    
+    block_devices = block.BlockDevices()
+    syleps = Syleps(config.get_param('suas_user'), config.get_param('suux_user'), config.get_param('db_user'), config.get_param('as_user'))
+
     def __init__(self, advanced_enabled=True):
         # Console attribute
         title = "Syleps Linux Configuration Console"
@@ -131,12 +132,23 @@ class SylepsConsole:
 
         self.advanced_enabled = advanced_enabled
 
-        # Net attributes
-        self.ifnames = NetworkInfo.get_filtered_ifnames()
-        self.default_nic = None
-        if self._get_default_nic():
-            self.default_nic = self._get_default_nic()
-            self.default_ip, self.default_netmask, self.default_gateway, self.default_nameservers = SysInterfaceInfo(self.default_nic).get_ipconf()
+        # Detect if we have to grow an fs
+        try:
+            if conf.path('grow_fs'):
+                self.console.infobox("Growing fs...")
+                fh = open(conf.path('grow_fs'), 'r')
+                grow_fs = fh.read()
+                fh.close()
+
+                for disk in grow_fs.split():
+                    cmd = self.block_devices.get_lastpart(disk)['cmd']
+                    ret = executil.system(cmd+'> /dev/null 2>&1')
+
+                    if ret:
+                        while True:
+                            self.console.msgbox("Error", "Error when growing FS. Call your support. This may be very serious.")
+        except conf.Error:
+            pass
 
     def _get_serial(self):
         prefix = { 'oradb11g': 'db', 'ofm11g': 'as'}.get(self.alias, 'Invalid_alias')
@@ -146,7 +158,7 @@ class SylepsConsole:
             uuid = file(conf.path('validated'), 'r').readline()
         except:
             raise Error('This VM has never been validated')
-            
+
         return "%s-%s-%s" % (prefix, fd, uuid)
 
     @classmethod
@@ -178,7 +190,10 @@ class SylepsConsole:
         items = []
         items.append(("Networking", "Configure appliance networking"))
         items.append(("Hosts", "Configure /etc/hosts and hostname settings"))
-        items.append(("Timezone", "Configure system timezone"))
+        # Abandonned configuration, dialog doesn't support so much choice in menu
+        #items.append(("Timezone", "Configure system timezone"))
+        items.append(('NTP', 'Configure NTP servers'))
+        items.append(("Filesystems", "Grow last filesystem on a disk"))
 
         items.append(("Reboot", "Reboot the appliance"))
         items.append(("Shutdown", "Shutdown the appliance"))
@@ -397,6 +412,131 @@ class SylepsConsole:
 
         return "ifconf"
 
+    def grow_fs(self):
+
+        device = '/dev/' + self.disk
+
+        lastpart = self.block_devices.get_lastpart(self.disk)
+        sfdisk_cmd = 'sfdisk --no-reread -N'+lastpart['num']+' '+device+' << EOF\n'
+        sfdisk_script = ','+lastpart['max_size']+','+lastpart['type']+'\n;\nEOF\n'
+
+        executil.system(sfdisk_cmd+sfdisk_script)
+        fh = open('/etc/bootconsole/grow_fs', 'a')
+        fh.write(self.disk+' ')
+        fh.close()
+
+        self.console.msgbox("Notice", "Reboot needed to grow fs on %s..." % device)
+
+        return 'advanced'
+
+    def _adv_filesystems(self):
+        '''
+        Grows filesystem size if new free space available on disk
+        after having grow disk size
+        '''
+
+        disks = self.block_devices.rescan_disks(self.block_devices.disks)
+
+        #if no interfaces at all - display error and go to advanced
+        if len(disks) == 0:
+            self.console.msgbox("Error", "No block devices detected")
+            return "advanced"
+
+        # if only 1 interface, dont display menu - just configure it
+        if len(disks) == 1:
+            self.disk = disks[0]
+            return "grow_fs"
+
+        # display networking
+        text = "Choose the block device grown\n"
+        retcode, self.disk = self.console.menu("Grow block device and the last fs on partition table",
+                                                 text, disks)
+
+        if retcode is not self.OK:
+            return "advanced"
+
+        return "grow_fs"
+
+    def _adv_ntp(self):
+        '''
+        Configure 1 to 4 NTP server
+        '''
+        def _validate(ntp_server):
+            if not ipaddr.is_legal_ip(ntp_server) and not netinfo.is_legal_hostname(ntp_server) and ntp_server:
+                errors.append("Invalid ntp server. Please configure an IP or hostname.")
+
+            if errors:
+                return errors
+
+            return []
+
+        text='Configure on which ntp server we synchronize to. At least one server needed.'
+        errors = []
+
+        ntp_conf = conf.Conf('ntp.conf')
+
+        # Make sure we have a list as server parameter
+        server = ntp_conf.get_param('server')
+        if isinstance(server, str):
+            ntp_conf.set_param('server', '')
+            ntp_conf.set_param('server', '')
+            ntp_conf.set_param('server', '')
+
+        i = 0
+        fields = []
+        input = ['', '', '', '']
+
+        field_width = 50
+        field_limit = 50
+
+        while 1:
+            try:
+                for i in range(len(input)):
+                     input[i] = ntp_conf.get_param('server')[i]
+            except IndexError:
+                pass
+
+            fields.append(('NTP server', input[0], field_width, field_limit))
+            fields.append(('NTP server', input[1], field_width, field_limit))
+            fields.append(('NTP server', input[2], field_width, field_limit))
+            fields.append(('NTP server', input[3], field_width, field_limit))
+
+            retcode, input = self.console.form("NTP server configuration", text, fields)
+
+            if retcode is not self.OK:
+                break
+
+            # Reset old parameters before inserting new one
+            ntp_conf.del_param('server')
+            ntp_conf.del_param('peer')
+
+            # remove any whitespaces, empty values and comment at endline
+            # the user might included and process errors
+            for i in range(len(input)):
+                if input[i] != '':
+                    ntp_conf.set_param('server', input[i].strip().split('#')[0])
+                else:
+                    continue
+            for server in ntp_conf.get_param('server'):
+                err = _validate(server)
+
+                if err:
+                    err = "\n".join(err)
+
+            self._check_error(err)
+            # Add a peer ntp server from hosts file and write conf
+            # Peer hosts are application server or database host composing
+            # the appliance.
+            hosts_conf = conf.Conf('hosts')
+            ntp_conf.set_param('peer', hosts_conf.get_host(self.alias, get_peer=True)['alias'])
+            err = ntp_conf.write_conf()
+            self._check_error(err)
+            executil.system('/sbin/service ntpd restart > /dev/null 2>&1')
+
+            break
+
+        return "advanced"
+
     def _adv_hosts(self):
         def _validate(hostname, peer_hostname, peer_ip):
             errors = []
@@ -419,9 +559,9 @@ class SylepsConsole:
             return []
 
         hosts_conf = conf.Conf("hosts")
-        input = [None, None, None, None, None] 
+        input = [None, None, None, None, None]
         input[0] = self.net.hostname
-        
+
         if self.alias == 'ofm11g':
             label_peer_hostname = "DB Hostname"
             input[1] = get_ip_or_hostname_from_alias('oradb11g', hosts_conf, 'hostname')
@@ -452,7 +592,7 @@ class SylepsConsole:
             # remove any whitespaces the user might of included
             for i in range(len(input)):
                 input[i] = input[i].strip()
-            
+
             hostname = input[0]
             peer_hostname = input[1]
             peer_ip = input[2]
@@ -470,11 +610,18 @@ class SylepsConsole:
         return "advanced"
 
     def _adv_timezone(self):
-        if not os.path.exists('/usr/sbin/timeconfig'):
-            self.console.msgbox("Error", "system-config-date rpm not installed.\nPlease install it.")
-            return "advanced"
-            
-        executil.system('/usr/sbin/timeconfig')
+        timezones = []
+        os.chdir('/usr/share/zoneinfo')
+        for zone in os.listdir('.'):
+            if os.path.isdir(zone) and zone == "Europe":
+                for elt in os.listdir(zone):
+                    timezone = os.path.join(zone, elt)
+                    timezones.append(timezone)
+
+        retcode, choice = self.console.menu("Timezone Selection",
+                                            self.appname + "Timezone Selection\n",
+                                            timezones)
+
         return "advanced"
 
     def _shutdown(self, text, opt):
