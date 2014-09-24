@@ -219,3 +219,150 @@ class NetworkInterface:
     def dns_nameservers(self):
         return self._parse_attr('dns-nameservers')[1:]
 
+    def __getattr__(self, attrname):
+        #attributes with multiple values will be returned in an array
+        #exception: dns-nameservers always returns in array (expected)
+
+        attrname = attrname.replace('_', '-')
+        values = self._parse_attr(attrname)
+        if len(values) > 2:
+            return values[1:]
+        elif len(values) > 1:
+            return values[1]
+
+        return
+
+def get_nameservers(ifname):
+    #/etc/network/interfaces (static)
+    #interface = NetworkInterface(ifname)
+    #if interface.dns_nameservers:
+    #    return interface.dns_nameservers
+
+    def parse_resolv(path):
+        nameservers = []
+        for line in file(path).readlines():
+            if line.startswith('nameserver'):
+                nameservers.append(line.strip().split()[1])
+        return nameservers
+
+    #Debian relative
+    #resolvconf (dhcp)
+    #path = '/etc/resolvconf/run/interface'
+    #if os.path.exists(path):
+    #    for f in os.listdir(path):
+    #        if not f.startswith(ifname) or f.endswith('.inet'):
+    #            continue
+
+    #        nameservers = parse_resolv(os.path.join(path, f))
+    #        if nameservers:
+    #            return nameservers
+
+    #/etc/resolv.conf
+    nameservers = parse_resolv('/etc/resolv.conf')
+    if nameservers:
+        return nameservers
+
+    return []
+
+def ifup(ifname):
+    return executil.getoutput("ifup %s"% ifname)
+
+def ifdown(ifname):
+    return executil.getoutput("ifdown %s"% ifname)
+
+def unconfigure_if(ifname):
+    try:
+        ifdown(ifname)
+        interfaces = NetworkSettings()
+        interfaces.set_manual(ifname)
+        executil.system("ifconfig %s 0.0.0.0" % ifname)
+        ifup(ifname)
+    except Exception, e:
+        return str(e)
+
+def set_static(ifname, addr, netmask, gateway, nameservers, hostname):
+    try:
+        ifdown(ifname)
+        interfaces = NetworkSettings()
+        interfaces.set_static(ifname, addr, netmask, gateway, nameservers, hostname)
+        output = ifup(ifname)
+
+        net = netinfo.InterfaceInfo(ifname)
+        if not net.addr:
+            raise Error('Error obtaining IP address\n\n%s' % output)
+
+    except Exception, e:
+        return str(e)
+
+def set_dhcp(ifname):
+    try:
+        ifdown(ifname)
+        interfaces = NetworkSettings()
+        interfaces.set_dhcp(ifname)
+        output = ifup(ifname)
+
+        net = netinfo.InterfaceInfo(ifname)
+        if not net.addr:
+            raise Error('Error obtaining IP address\n\n%s' % output)
+
+    except Exception, e:
+        return str(e)
+
+def get_ipconf(ifname):
+    net = netinfo.InterfaceInfo(ifname)
+    return net.addr, net.netmask, net.gateway, get_nameservers(ifname)
+
+def get_ifmethod(ifname):
+    interface = NetworkInterface(ifname)
+    return interface.method
+
+def get_ifmacaddr(ifname):
+    interface = NetworkInterface(ifname)
+    return interface.macaddr
+
+def get_shortname(hostname):
+    return hostname.split(".", 1)[0]
+
+def get_filtered_ifnames():
+    '''
+    Return net interface name without useless or pseudo interface
+    '''
+    ifnames = []
+    for ifname in netinfo.get_ifnames():
+        is_ok = True
+        for elt in ('lo', 'sit', 'tap', 'br', 'tun', 'vmnet', 'wmaster'):
+            if ifname.startswith(elt):
+                is_ok = False
+        if is_ok == True:
+            ifnames.append(ifname)
+
+    ifnames.sort()
+    return ifnames
+
+def get_default_nic(conf):
+    '''
+    Get default nic from bootconsole.conf file or
+    take the first interface from filtered list
+    '''
+    def _validip(ifname):
+        ip = get_ipconf(ifname)[0]
+        if ip and not ip.startswith('169'):
+            return True
+        return False
+
+    default_nic_set = False
+    try:
+        ifname = conf.get_param('default_nic')
+    except KeyError:
+        ifname = None
+
+    if ifname:
+        default_nic_set = True
+        if _validip(ifname):
+            return ifname
+
+    for ifname in get_filtered_ifnames():
+        if _validip(ifname):
+            return ifname
+
+    return None
