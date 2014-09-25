@@ -101,7 +101,7 @@ class BlockDevices:
         output = executil.getoutput_popen(cmd, careabouterrors=False).split('\n')
         for line in output:
             if 'Warning' in line:
-                max = re.search(r'\((\d+)\)$', line).group(1)
-                return max
+                maximum = re.search(r'\((\d+)\)$', line).group(1)
+                return maximum
 
         raise Error('Error, contact Syleps support about that please: %s' % str(output))

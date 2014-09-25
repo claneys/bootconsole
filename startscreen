@@ -27,6 +27,7 @@ import bootconsole.block as block
 from bootconsole.syleps import Syleps
 
 os.environ['TERM'] = 'xterm'
+os.environ['LANG'] = 'en_US'
 
 class Error(Exception):
     pass
@@ -439,7 +440,7 @@ class SylepsConsole:
 
         # if only 1 block device, dont display menu - just configure it
         if len(disks) == 1:
-            self.disk = disks[0]
+            self.disk = disks[0][0]
             return "grow_fs"
 
         text = "Choose the block device grown\n"

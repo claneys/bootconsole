@@ -16,7 +16,7 @@ Prefix: %{_prefix}
 BuildArch: noarch
 Vendor: Romain Forlot <romain.forlot@syleps.fr>
 Url: http:/github.com/claneys/bootconsole
-Requires: dialog
+Requires: dialog, python-iniparse
 
 %description
 The Configuration Console's objective is to provide the user with basic network
@@ -53,7 +53,7 @@ rm -rf $RPM_BUILD_ROOT
 %config %{_sysconfdir}/%{name}/usage.txt
 %config %{_sysconfdir}/init/%{name}.conf
 %config %{_sysconfdir}/init/start-ttys.override
-%{_var}%{_lib}/bootconsole
+%{_var}/lib/bootconsole
 
 %post
 # Add Header in bootconsole managed files
@@ -78,5 +78,5 @@ then
         chattr -i %{_sysconfdir}/bootconsole/validated
         rm -f %{_sysconfdir}/bootconsole/validated
     fi
-    rm -rf %{_var}%{_lib}/bootconsole
+    rm -rf %{_var}/lib/bootconsole
 fi
