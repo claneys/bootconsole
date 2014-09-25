@@ -154,6 +154,8 @@ class SylepsConsole:
                     if ret:
                         while True:
                             self._check_error(ret)
+                
+                os.remove(self.fs2extend_file)
         except conf.Error:
             pass
 
