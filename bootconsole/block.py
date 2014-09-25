@@ -96,7 +96,7 @@ class BlockDevices:
     def get_max_size(self, device, lastpart):
         # It is important to use sector as unit and not cylinder by default 'cause cylinder
         # doesn't have the necessary granulirity to correctly address partition.
-        cmd = 'sfdisk --no-reread -N'+lastpart+' '+device+' -L -uS << EOF 2>&1\n,999999999999,'+'\nEOF\n'
+        cmd = 'sfdisk --no-reread -uS -L -N'+lastpart+' '+device+' -L -uS << EOF 2>&1\n,999999999999,'+'\nEOF\n'
 
         output = executil.getoutput_popen(cmd, careabouterrors=False).split('\n')
         for line in output:

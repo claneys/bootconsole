@@ -121,7 +121,7 @@ class SylepsConsole:
     config = conf.Conf("bootconsole.conf")
     block_devices = block.BlockDevices()
     syleps = Syleps(config)
-    var_dir = self.config.get_param('var_dir')
+    var_dir = config.get_param('var_dir')
 
     def __init__(self, advanced_enabled=True):
         # Console attribute
@@ -454,7 +454,7 @@ class SylepsConsole:
         device = '/dev/' + self.disk
 
         lastpart = self.block_devices.get_lastpart(self.disk)
-        sfdisk_cmd = 'sfdisk --no-reread -N'+lastpart['num']+' '+device+' << EOF\n'
+        sfdisk_cmd = 'sfdisk --no-reread -uS -L -N'+lastpart['num']+' '+device+' << EOF\n'
         sfdisk_script = ','+lastpart['max_size']+','+lastpart['type']+'\nEOF\n'
 
         executil.system(sfdisk_cmd+sfdisk_script)
@@ -527,7 +527,7 @@ class SylepsConsole:
                 else:
                     continue
             for server in ntp_conf.get_param('server'):
-                err.append(_validate(server))
+                err = _validate(server)
 
                 if err:
                     err = "\n".join(err)
