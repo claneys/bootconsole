@@ -20,11 +20,11 @@ class Syleps:
     '''
 
     def __init__(self, bootconsole_conf=conf.Conf('bootconsole.conf')):
+        self.var_dir = bootconsole_conf.get_param('var_dir')
         self.db_user = bootconsole_conf.get_param('db_user')
         self.as_user = bootconsole_conf.get_param('as_user')
         self.suux_user = bootconsole_conf.get_param('suux_user')
         self.suas_user = bootconsole_conf.get_param('suas_user')
-        self.csum_file = conf.path('csums')
         self.conf_files = { 'db_tnsnames': self._find_file_in_homedir(self.db_user, 'tnsnames.ora'),
             'db_listener' : self._find_file_in_homedir(self.db_user, 'listener.ora'),
             'as_tnsnames' : self._find_file_in_homedir(self.as_user, 'tnsnames.ora'),
@@ -130,6 +130,7 @@ class Syleps:
         Record files checksum about Syleps essentials files that do not have 
         to change over time.
         '''
+        self.csum_file = os.path.join(self.var_dir,'csums')
         
         if os.access(self.csum_file, os.F_OK):
             content = open(self.csum_file, 'r').readlines()

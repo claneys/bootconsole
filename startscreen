@@ -120,10 +120,8 @@ class SylepsConsole:
     NetworkInfo = NetworkInfo()
     config = conf.Conf("bootconsole.conf")
     block_devices = block.BlockDevices()
-    try:
-        syleps = Syleps(config)
-    except:
-        raise Error('Cannot get configuration parameter about Syleps unix users.')
+    syleps = Syleps(config)
+    var_dir = self.config.get_param('var_dir')
 
     def __init__(self, advanced_enabled=True):
         # Console attribute
@@ -131,7 +129,7 @@ class SylepsConsole:
         self.width = 80
         self.height = 25
         self.alias = self.config.get_param('alias')
-        self.fs2extend_file = os.path.join(self.config.get_param('var_dir'), 'fs2extend')
+        self.fs2extend_file = os.path.join(self.var_dir, 'fs2extend')
         self.ifnames = ifutil.get_filtered_ifnames()
         self.default_nic = ifutil.get_default_nic(self.config)
         if self.default_nic:
