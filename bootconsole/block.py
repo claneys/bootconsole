@@ -21,7 +21,8 @@ class BlockDevices:
         # trailing space is important, do not strip it.
         self.resize_cmd_choice = { '8e' : 'pvresize ',
                               '83' : 'resize2fs ',
-                              '82' : ''}
+                              '82' : '',
+                              '5'  : 'echo "Do not support extended resize. Please call your Syleps SIC."'}
 
         self.code_type = { 'LVM2' : '8e',
                      'ext3' : '83',
@@ -93,8 +94,9 @@ class BlockDevices:
         return ret_disks
 
     def get_max_size(self, device, lastpart):
-
-        cmd = 'sfdisk --no-reread -N'+lastpart+' '+device+' << EOF 2>&1\n,999999999,'+'\n;\nEOF\n'
+        # It is important to use sector as unit and not cylinder by default 'cause cylinder
+        # doesn't have the necessary granulirity to correctly address partition.
+        cmd = 'sfdisk --no-reread -N'+lastpart+' '+device+' -L -uS << EOF 2>&1\n,999999999999,'+'\nEOF\n'
 
         output = executil.getoutput_popen(cmd, careabouterrors=False).split('\n')
         for line in output:

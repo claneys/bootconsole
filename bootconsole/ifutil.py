@@ -287,7 +287,7 @@ def set_static(ifname, addr, netmask, gateway, nameservers, hostname):
         interfaces.set_static(ifname, addr, netmask, gateway, nameservers, hostname)
         output = ifup(ifname)
 
-        net = netinfo.InterfaceInfo(ifname)
+        net = netinfo.SysInterfaceInfo(ifname)
         if not net.addr:
             raise Error('Error obtaining IP address\n\n%s' % output)
 
@@ -301,7 +301,7 @@ def set_dhcp(ifname):
         interfaces.set_dhcp(ifname)
         output = ifup(ifname)
 
-        net = netinfo.InterfaceInfo(ifname)
+        net = netinfo.SysInterfaceInfo(ifname)
         if not net.addr:
             raise Error('Error obtaining IP address\n\n%s' % output)
 
@@ -309,8 +309,8 @@ def set_dhcp(ifname):
         return str(e)
 
 def get_ipconf(ifname):
-    net = netinfo.InterfaceInfo(ifname)
-    return net.addr, net.netmask, net.gateway, get_nameservers(ifname)
+    net = netinfo.SysInterfaceInfo(ifname)
+    return net.address, net.netmask, net.gateway, get_nameservers(ifname)
 
 def get_ifmethod(ifname):
     interface = NetworkInterface(ifname)
@@ -328,7 +328,7 @@ def get_filtered_ifnames():
     Return net interface name without useless or pseudo interface
     '''
     ifnames = []
-    for ifname in netinfo.get_ifnames():
+    for ifname in netinfo.NetworkInfo().get_ifnames():
         is_ok = True
         for elt in ('lo', 'sit', 'tap', 'br', 'tun', 'vmnet', 'wmaster'):
             if ifname.startswith(elt):
@@ -350,14 +350,12 @@ def get_default_nic(conf):
             return True
         return False
 
-    default_nic_set = False
     try:
         ifname = conf.get_param('default_nic')
     except KeyError:
         ifname = None
 
     if ifname:
-        default_nic_set = True
         if _validip(ifname):
             return ifname
 

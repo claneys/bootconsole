@@ -14,9 +14,9 @@ class Error(Exception):
 def path(filename):
     '''
     Try to find file in some default dir
-    Return abs path if find else return False
+    Return abs path it finds.
     '''
-    for dir in ("/etc", "conf", "/etc/bootconsole", '/'):
+    for dir in ("/etc", "conf", "/etc/bootconsole"):
         path = os.path.join(dir, filename)
         if os.path.exists(path):
             return path
@@ -65,7 +65,9 @@ class Conf:
 
         if len(ret) == 1:
             ret = ret[0]
-
+        elif ret == []:
+            return('Could not find parameter %s in %s file' % (key, self.conf_file))
+        
         return ret
 
     # Set a parameter at a given position or a the end by default.
@@ -173,7 +175,8 @@ class Conf:
     def get_host(self, alias, get_peer=False):
         # Define alias mapping to display correct label into dialog form
         # { alias_in_conf: [peer_label, peer_alias] }
-        label_mapping = { 'ofm11g': {'label': 'DB', 'alias': 'oradb11g'}, 'oradb11g': { 'label': 'AS', 'alias': 'ofm11g'} }
+        label_mapping = { 'ofm11g': {'label': 'DB', 'alias': 'oradb11g'},
+                          'oradb11g': { 'label': 'AS', 'alias': 'ofm11g'} }
 
         # Inverse search to get peer host
         if get_peer:
@@ -187,8 +190,13 @@ class Conf:
             if ret_alias in elt:
                 v = elt.split()[1:]
                 other_alias = v[2:-1]
-                ret = { 'hostname': v[0], 'ip' : elt.split()[0], 'others_alias': ','.join(other_alias), 'alias': ret_alias, 'label': ret_label }
-
-                return ret
-            else:
-                ret = { 'hostname': 'undefined', 'ip': 'undefined', 'others_alias': 'undefinined', 'alias': 'undefined', 'label': 'undefined' }
+                return { 'hostname': v[0],
+                        'ip' : elt.split()[0],
+                        'others_alias': ','.join(other_alias),
+                        'alias': ret_alias,
+                        'label': ret_label }
+        return { 'hostname': '',
+                 'ip': '',
+                 'others_alias': '',
+                 'alias': '',
+                 'label': '' }

@@ -8,7 +8,10 @@ import netinfo
 import ipaddr
 import hashlib
 import ConfigParser
-from bootconsole.conf import Conf
+import bootconsole.conf as conf
+
+class Error(Exception):
+    pass
 
 class Syleps:
     '''
@@ -16,32 +19,32 @@ class Syleps:
     and configuration files integrity.
     '''
 
-    def __init__(self, suas_user='suas', suux_user='suux', db_user='oracle', as_user = 'ofm'):
-        self.db_user = db_user
-        self.as_user = as_user
-        self.suux_user = suux_user
-        self.suas_user = suas_user
-        self.csum_file = '/etc/bootconsole/csums'
-        self.conf_files = { 'db_tnsnames': self._find_file_in_homedir(db_user, 'tnsnames.ora'),
-            'db_listener' : self._find_file_in_homedir(db_user, 'listener.ora'),
-            'as_tnsnames' : self._find_file_in_homedir(as_user, 'tnsnames.ora'),
-            'as_formsweb' : self._find_file_in_homedir(as_user, 'formsweb.cfg'),
-            'as_dads' : self._find_file_in_homedir(as_user, 'dads.conf', exclude='FRHome'),
-            'suas_profile' : os.path.expanduser('~'+suas_user+'/.profile'),
-            'suas_profile_spec' : os.path.expanduser('~'+suas_user+'/.profile.spec'),
-            'suas_profile_ora' : os.path.expanduser('~'+suas_user+'/.profile.ora'),
-            'suas_profile_std' : os.path.expanduser('~'+suas_user+'/.profile.std'),
-            'suux_profile' : os.path.expanduser('~'+suux_user+'/.profile'),
-            'suux_profile_spec' : os.path.expanduser('~'+suux_user+'/.profile.spec'),
-            'suux_profile_ora' : os.path.expanduser('~'+suux_user+'/.profile.ora'),
-            'suux_profile_std' : os.path.expanduser('~'+suux_user+'/.profile.std')
+    def __init__(self, bootconsole_conf=conf.Conf('bootconsole.conf')):
+        self.db_user = bootconsole_conf.get_param('db_user')
+        self.as_user = bootconsole_conf.get_param('as_user')
+        self.suux_user = bootconsole_conf.get_param('suux_user')
+        self.suas_user = bootconsole_conf.get_param('suas_user')
+        self.csum_file = conf.path('csums')
+        self.conf_files = { 'db_tnsnames': self._find_file_in_homedir(self.db_user, 'tnsnames.ora'),
+            'db_listener' : self._find_file_in_homedir(self.db_user, 'listener.ora'),
+            'as_tnsnames' : self._find_file_in_homedir(self.as_user, 'tnsnames.ora'),
+            'as_formsweb' : self._find_file_in_homedir(self.as_user, 'formsweb.cfg'),
+            'as_dads' : self._find_file_in_homedir(self.as_user, 'dads.conf', exclude='FRHome'),
+            'suas_profile' : os.path.expanduser('~'+self.suas_user+'/.profile'),
+            'suas_profile_spec' : os.path.expanduser('~'+self.suas_user+'/.profile.spec'),
+            'suas_profile_ora' : os.path.expanduser('~'+self.suas_user+'/.profile.ora'),
+            'suas_profile_std' : os.path.expanduser('~'+self.suas_user+'/.profile.std'),
+            'suux_profile' : os.path.expanduser('~'+self.suux_user+'/.profile'),
+            'suux_profile_spec' : os.path.expanduser('~'+self.suux_user+'/.profile.spec'),
+            'suux_profile_ora' : os.path.expanduser('~'+self.suux_user+'/.profile.ora'),
+            'suux_profile_std' : os.path.expanduser('~'+self.suux_user+'/.profile.std')
         }
 
     def _make_password(self):
         '''
         Determine su ux user password based on hostname
         '''
-        hostname = netinfo.get_hostname().split('.')[0]
+        hostname = netinfo.NetworkInfo().hostname.split('.')[0]
         password = re.sub(r'(db|as)(su)', r'pw\2', hostname)
         return password
         
@@ -68,10 +71,13 @@ class Syleps:
         Param: bootconsole conf object, password
         Return: None
         '''
-        pos = conf.param.index(conf.get_param('PlsqlDatabasePassword', bare=True))
-        conf.del_param('PlsqlDatabasePassword')
-        conf.set_param('PlsqlDatabasePassword', password, pos)
-        conf.write_conf()
+        try:
+            pos = conf.param.index(conf.get_param('PlsqlDatabasePassword', bare=True))        
+            conf.del_param('PlsqlDatabasePassword')
+            conf.set_param('PlsqlDatabasePassword', password, pos)
+            conf.write_conf()
+        except ValueError:
+            return 'Don\'t find PlsqlDatabasePassword statement in dads.conf file.'
 
     def _change_formsweb(self, conf, password):
         '''
@@ -81,11 +87,14 @@ class Syleps:
         '''
         pattern_replacement = r'\1' + password + r'\2'
 
-        userid_val = conf.get(self.suas_user, 'userid')
-        userid_val = re.sub(r'(/).*(@)', pattern_replacement, userid_val)
+        try:
+            userid_val = conf.get(self.suas_user, 'userid')
+            userid_val = re.sub(r'(/).*(@)', pattern_replacement, userid_val)
 
-        conf.set(self.suas_user, 'userid', userid_val)
-        conf.write(open(self.conf_files['as_formsweb'],'w'))
+            conf.set(self.suas_user, 'userid', userid_val)
+            conf.write(open(self.conf_files['as_formsweb'],'w'))
+        except ConfigParser.NoSectionError:
+            return 'No section "%s" into formsweb.cfg file.' % self.suas_user
 
     def change_su_password(self):
         '''
@@ -96,18 +105,22 @@ class Syleps:
         Return:  if error on change_hostname.sh
         '''
         password = self._make_password()
-
+        err = []
         if self.conf_files['as_formsweb'] != None:
             formsweb_conf = ConfigParser.ConfigParser()
             formsweb_conf.readfp(open(self.conf_files['as_formsweb']))
-            self._change_formsweb(formsweb_conf, password)
+            err.append(self._change_formsweb(formsweb_conf, password))
         if self.conf_files['as_dads'] != None:
-            dads_conf = Conf(self.conf_files['as_dads'])
-            self._change_dads(dads_conf, password)
+            dads_conf = conf.Conf(self.conf_files['as_dads'])
+            err.append(self._change_dads(dads_conf, password))
 
+        if err != []:
+            err.append('\nAbort changing SU password.\nAnyway, your hosts file was writen.')
+            return '\n'.join(err)
+        
         try:
             executil.system('/bin/su '+ self.suas_user +' - -c "~'+self.suas_user+'/run/bin/change_hostname.sh" > /dev/null 2>&1')
-        except:
+        except executil.ExecError:
             executil.system('/bin/su '+ self.suux_user +' - -c "~'+self.suux_user+'/run/bin/change_hostname.sh" > /dev/null 2>&1')
         else:
             return 'Can\'t execute change_hostname.sh script.'

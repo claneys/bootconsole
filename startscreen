@@ -20,10 +20,11 @@ from StringIO import StringIO
 from bootconsole.dialog import Dialog
 from bootconsole.netinfo import *
 from bootconsole.ipaddr import IP, IPRange
-from bootconsole.ifutil import NetworkInterface
+import bootconsole.ifutil as ifutil
 import bootconsole.executil as executil
 import bootconsole.conf as conf
 import bootconsole.block as block
+from bootconsole.syleps import Syleps
 
 os.environ['TERM'] = 'xterm'
 
@@ -116,37 +117,45 @@ class Console:
 class SylepsConsole:
     OK = 0
     CANCEL = 1
+    NetworkInfo = NetworkInfo()
     config = conf.Conf("bootconsole.conf")
     block_devices = block.BlockDevices()
-    syleps = Syleps(config.get_param('suas_user'), config.get_param('suux_user'), config.get_param('db_user'), config.get_param('as_user'))
+    try:
+        syleps = Syleps(config)
+    except:
+        raise Error('Cannot get configuration parameter about Syleps unix users.')
 
     def __init__(self, advanced_enabled=True):
         # Console attribute
         title = "Syleps Linux Configuration Console"
         self.width = 80
         self.height = 25
-        self.alias = self.config.param['alias']
-
+        self.alias = self.config.get_param('alias')
+        self.fs2extend_file = os.path.join(self.config.get_param('var_dir'), 'fs2extend')
+        self.ifnames = ifutil.get_filtered_ifnames()
+        self.default_nic = ifutil.get_default_nic(self.config)
+        if self.default_nic:
+            self.default_nic_set = True
         self.console = Console(title, self.width, self.height)
-        self.appname = "Syleps Linux %s" % self.net.hostname.upper()
+        self.appname = "Syleps Linux"
 
         self.advanced_enabled = advanced_enabled
 
-        # Detect if we have to grow an fs
+        # Detect if we have to grow fs
         try:
-            if conf.path('grow_fs'):
+            if os.path.exists(self.fs2extend_file):
                 self.console.infobox("Growing fs...")
-                fh = open(conf.path('grow_fs'), 'r')
-                grow_fs = fh.read()
+                fh = open(self.fs2extend_file, 'r')
+                fs2extend = fh.read()
                 fh.close()
 
-                for disk in grow_fs.split():
+                for disk in fs2extend.split():
                     cmd = self.block_devices.get_lastpart(disk)['cmd']
                     ret = executil.system(cmd+'> /dev/null 2>&1')
 
                     if ret:
                         while True:
-                            self.console.msgbox("Error", "Error when growing FS. Call your support. This may be very serious.")
+                            self._check_error(ret)
         except conf.Error:
             pass
 
@@ -185,7 +194,11 @@ class SylepsConsole:
                 return ifname
 
         return None
-
+    
+    def _check_error(self, err):
+        if err:
+            self.console.msgbox('Error', err)
+            
     def _get_advmenu(self):
         items = []
         items.append(("Networking", "Configure appliance networking"))
@@ -231,7 +244,7 @@ class SylepsConsole:
         menu = []
         for ifname in self.ifnames:
             addr = SysInterfaceInfo(ifname).address
-            ifmethod = NetworkInterface(ifname).method
+            ifmethod = ifutil.NetworkInterface(ifname).method
 
             if addr:
                 desc = addr
@@ -270,7 +283,7 @@ class SylepsConsole:
         text += "Default Gateway: %s\n" % self.gateway
         text += "Name Server(s):  %s\n\n" % " ".join(self.nameservers)
 
-        ifmethod = NetworkInterface(ifname).method
+        ifmethod = ifutil.NetworkInterface(ifname).method
         if ifmethod:
             text += "Networking configuration method: %s\n" % ifmethod
 
@@ -383,7 +396,7 @@ class SylepsConsole:
 
             # unconfigure the nic if all entries are empty
             if not input[0] and not input[1] and not input[2] and not input[3]:
-                NetworkInterface(self.ifname).unconfigure_if()
+                ifutil.NetworkInterface(self.ifname).unconfigure_if()
                 break
 
             new_ip, new_netmask, new_gateway = input[:3]
@@ -395,39 +408,21 @@ class SylepsConsole:
             if err:
                 err = "\n".join(err)
             else:
-                err = NetworkInterface(self.ifname).set_static(new_ip, new_netmask,
-                                        new_gateway, new_nameservers, self.net.hostname)
+                err = ifutil.NetworkInterface(self.ifname).set_static(new_ip, new_netmask,
+                                        new_gateway, new_nameservers, self.NetworkInfo.hostname)
                 if not err:
                     break
 
-            self.console.msgbox("Error", err)
+            self._check_error(err)
 
         return "ifconf"
 
     def _ifconf_dhcp(self):
         self.console.infobox("Requesting DHCP for %s..." % self.ifname)
-        err = NetworkInterface(self.ifname).set_dhcp()
-        if err:
-            self.console.msgbox("Error", err)
+        err = ifutil.NetworkInterface(self.ifname).set_dhcp()
+        self._check_error(err)
 
         return "ifconf"
-
-    def grow_fs(self):
-
-        device = '/dev/' + self.disk
-
-        lastpart = self.block_devices.get_lastpart(self.disk)
-        sfdisk_cmd = 'sfdisk --no-reread -N'+lastpart['num']+' '+device+' << EOF\n'
-        sfdisk_script = ','+lastpart['max_size']+','+lastpart['type']+'\n;\nEOF\n'
-
-        executil.system(sfdisk_cmd+sfdisk_script)
-        fh = open('/etc/bootconsole/grow_fs', 'a')
-        fh.write(self.disk+' ')
-        fh.close()
-
-        self.console.msgbox("Notice", "Reboot needed to grow fs on %s..." % device)
-
-        return 'advanced'
 
     def _adv_filesystems(self):
         '''
@@ -435,19 +430,18 @@ class SylepsConsole:
         after having grow disk size
         '''
 
-        disks = self.block_devices.rescan_disks(self.block_devices.disks)
+        disks = self.block_devices.rescan_disks()
 
-        #if no interfaces at all - display error and go to advanced
+        #if no block devices at all - display error and go to advanced
         if len(disks) == 0:
-            self.console.msgbox("Error", "No block devices detected")
+            self._check_error(err)
             return "advanced"
 
-        # if only 1 interface, dont display menu - just configure it
+        # if only 1 block device, dont display menu - just configure it
         if len(disks) == 1:
             self.disk = disks[0]
             return "grow_fs"
 
-        # display networking
         text = "Choose the block device grown\n"
         retcode, self.disk = self.console.menu("Grow block device and the last fs on partition table",
                                                  text, disks)
@@ -457,13 +451,30 @@ class SylepsConsole:
 
         return "grow_fs"
 
+    def grow_fs(self):
+
+        device = '/dev/' + self.disk
+
+        lastpart = self.block_devices.get_lastpart(self.disk)
+        sfdisk_cmd = 'sfdisk --no-reread -N'+lastpart['num']+' '+device+' << EOF\n'
+        sfdisk_script = ','+lastpart['max_size']+','+lastpart['type']+'\nEOF\n'
+
+        executil.system(sfdisk_cmd+sfdisk_script)
+        fh = open(self.fs2extend_file, 'a')
+        fh.write(self.disk+' ')
+        fh.close()
+
+        self.console.msgbox("Notice", "Reboot needed to grow fs on %s..." % device)
+
+        return 'advanced'
+    
     def _adv_ntp(self):
         '''
         Configure 1 to 4 NTP server
         '''
         def _validate(ntp_server):
-            if not ipaddr.is_legal_ip(ntp_server) and not netinfo.is_legal_hostname(ntp_server) and ntp_server:
-                errors.append("Invalid ntp server. Please configure an IP or hostname.")
+            if not IP.is_legal(ntp_server) and not self.NetworkInfo.is_legal_hostname(ntp_server) and ntp_server:
+                errors.append("Invalid ntp server: %s.\nPlease only configure an IP or hostname."% ntp_server)
 
             if errors:
                 return errors
@@ -518,7 +529,7 @@ class SylepsConsole:
                 else:
                     continue
             for server in ntp_conf.get_param('server'):
-                err = _validate(server)
+                err.append(_validate(server))
 
                 if err:
                     err = "\n".join(err)
@@ -538,52 +549,57 @@ class SylepsConsole:
         return "advanced"
 
     def _adv_hosts(self):
-        def _validate(hostname, peer_hostname, peer_ip):
+        '''
+        Configure /etc/hosts file and make sure that we have alias from both
+        servers configured
+        '''
+        def _validate(hostname, alias, peer_hostname, peer_alias, peer_ip):
             errors = []
             if not peer_ip:
                 errors.append("IP address missing")
             elif not IP.is_legal(peer_ip):
                 errors.append("Invalid IP address")
 
-            if re.search("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$", hostname) == None:
-                if re.search("^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])$", hostname) == None:
-                    errors.append('Hostname not compliant. Illegal char, just alphanumeric and "-","." are authorized')
+            for elt in [hostname, alias, peer_hostname, peer_alias]:
+                if type(elt) == list:
+                    for subelt in elt:
+                        if not self.NetworkInfo.is_legal_hostname(subelt):
+                            errors.append(elt+' hostname not compliant. Illegal char, just alphanumeric and "-","." are authorized')
+                else:
+                    if not self.NetworkInfo.is_legal_hostname(elt):
+                        errors.append(elt+' hostname not compliant. Illegal char, just alphanumeric and "-","." are authorized')
+                        
+                if errors:
+                    return errors
+                    
+                return []
 
-            if re.search("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$", peer_hostname) == None:
-                if re.search("^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])$", peer_hostname) == None:
-                    errors.append('Hostname not compliant. Illegal char, just alphanumeric and "-","." are authorized')
-
-            if errors:
-                return errors
-
-            return []
-
+        # Fill form input based upon which role has the server (AS or DB instance)
         hosts_conf = conf.Conf("hosts")
+        ifname = self.default_nic
         input = [None, None, None, None, None]
-        input[0] = self.net.hostname
+        peer_host = hosts_conf.get_host(self.alias, get_peer=True)
+        input[0] = self.NetworkInfo.hostname
+        try:
+            input[1] = hosts_conf.get_host(self.alias)['others_alias']
+            input[2] = peer_host['hostname']
+            input[3] = peer_host['others_alias']
+            input[4] = peer_host['ip']
+        except TypeError:
+            pass
 
-        if self.alias == 'ofm11g':
-            label_peer_hostname = "DB Hostname"
-            input[1] = get_ip_or_hostname_from_alias('oradb11g', hosts_conf, 'hostname')
-            label_peer_ip = "DB IP address"
-            input[2] = get_ip_or_hostname_from_alias('oradb11g', hosts_conf, 'ip')
-        else:
-            label_peer_hostname = "AS Hostname"
-            input[1] = get_ip_or_hostname_from_alias('ofm11g', hosts_conf, 'hostname')
-            label_peer_ip = "AS IP address"
-            input[2] = get_ip_or_hostname_from_alias('ofm11g', hosts_conf, 'ip')
-
+        fields = []
         field_width = 50
         field_limit = 50
 
         while 1:
-            fields = [
-                ("Hostname of this server", input[0], field_width, field_limit),
-                (label_peer_hostname, input[1], field_width, field_limit),
-                (label_peer_ip, input[2], field_width, field_limit),
-            ]
-
-            text = "Set /etc/hosts entries (Must be FQDN)"
+            fields.append(("Hostname", input[0], field_width, field_limit))
+            fields.append(("Additional(s) alias", input[1], field_width, field_limit))
+            fields.append((peer_host['label'] + " hostname", input[2], field_width, field_limit))
+            fields.append((peer_host['label'] + " additional(s) alias", input[3], field_width, field_limit))
+            fields.append((peer_host['label'] + " IP address", input[4], field_width, field_limit))
+            
+            text = "Set /etc/hosts entries. Hostname can be shortname or fqdn.\nSpecify comma separated alias. There are optionnal and let you add hostname to be resolved."
             retcode, input = self.console.form("Hosts settings", text, fields)
 
             if retcode is not self.OK:
@@ -593,22 +609,31 @@ class SylepsConsole:
             for i in range(len(input)):
                 input[i] = input[i].strip()
 
+            ip = ifutil.get_ipconf(ifname)[0]
             hostname = input[0]
-            peer_hostname = input[1]
-            peer_ip = input[2]
+            alias = input[1].split(',')
+            peer_hostname = input[2]
+            peer_alias = input[3].split(',')
+            peer_ip = input[4]
 
-            err = _validate(hostname, peer_hostname, peer_ip)
+            err = _validate(hostname, alias, peer_hostname, peer_alias, peer_ip)
             if err:
                 err = "\n".join(err)
             else:
-                err = hosts_conf.set_hosts(self.default_ip, hostname, peer_hostname, peer_ip, self.alias)
-                if not err:
-                    break
+                alias.append(self.alias)
+                err = hosts_conf.set_hosts(ip, hostname, alias, peer_hostname, peer_alias, peer_ip)
+            self._check_error(err)
 
-            self.console.msgbox("Error", err)
+            # Change Syleps ux user password as it rely on hostname.
+            err = self.syleps.change_su_password()
+            self._check_error(err)
 
-        return "advanced"
+            err = self.syleps.record_checksums()
+            self._check_error(err)
 
+            break
+
+        return 'advanced'
     def _adv_timezone(self):
         timezones = []
         os.chdir('/usr/share/zoneinfo')
@@ -706,26 +731,28 @@ class SylepsConsole:
             return "advanced"
 
         #if interfaces but no default - ask if we keep that actual network configuration
+        ifname = self.default_nic
         if not self.default_nic_set:
             error = "Network configuration need your approval."
             if not self.advanced_enabled:
                 fatal(error)
-            self.console.msgbox("Error", error)
+            self._check_error(error)
             return "keep_ifconf"
-        elif not self.default_nic:
+        elif not ifname:
             error = "Network not yet configured.\n\n Please configure the network interface."
             if not self.advanced_enabled:
                 fatal(error)
-            self.console.msgbox("Error", error)
+            self._check_error(error)
             self.default_nic = self.config.param['default_nic']
             return "networking"
 
         #display usage
-        hostname = self.net.hostname
+        ipaddr = ifutil.get_ipconf(ifname)[0]
+        hostname = self.NetworkInfo.hostname
 
         #backwards compatible - use usage.txt if it exists
         t = file(conf.path("usage.txt"), 'r').read()
-        text = Template(t).substitute(serial=self._get_serial(), hostname=hostname, ipaddr=self.default_ip)
+        text = Template(t).substitute(serial=self._get_serial(), hostname=hostname, ipaddr=ipaddr)
 
         text += "\n" * (self.height - len(text.splitlines()) - 7)
         text += "\Z3                            Syleps SU Appliance\n"
@@ -757,4 +784,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

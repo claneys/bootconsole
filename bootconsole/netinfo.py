@@ -45,6 +45,13 @@ class Error(Exception):
     pass
 
 class NetworkInfo:
+    
+    @staticmethod
+    def is_legal_hostname(hostname):
+        if re.search("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$", hostname) == None:
+            if re.search("^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])$", hostname) == None:
+                return False
+        return True
 
     @staticmethod
     def get_ifnames():

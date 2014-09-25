@@ -14,6 +14,6 @@ setup (name = "bootconsole",
        url = "http:/github.com/claneys/bootconsole",
        packages = ['bootconsole', ''],
        data_files = [('/etc/bootconsole', ['conf/usage.txt',
-           'conf/bootconsole.conf']), ('/etc/profile.d', ['conf/alias.sh'])],
+           'conf/bootconsole.conf']), ('/var/lib/bootconsole', [])],
        scripts = ['startscreen', 'sic_seal']
       )
