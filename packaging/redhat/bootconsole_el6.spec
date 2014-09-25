@@ -1,6 +1,6 @@
 %define name bootconsole
 %define version 1.11
-%define release 3.el6
+%define release 4.el6
 
 Summary: Boot Ncurses Console configuration
 Name: %{name}
@@ -78,4 +78,5 @@ then
         chattr -i %{_sysconfdir}/bootconsole/validated
         rm -f %{_sysconfdir}/bootconsole/validated
     fi
+    rm -rf %{_var}%{_lib}/bootconsole
 fi
