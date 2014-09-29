@@ -6,7 +6,7 @@ from distutils.core import setup
 import bootconsole
 
 setup (name = "bootconsole",
-       version = "1.13",
+       version = "1.14",
        description = "Boot Ncurses Console configuration",
        include_package_data=True,
        author = "Romain Forlot",
