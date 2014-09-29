@@ -44,16 +44,6 @@ def usage(e=None):
     print >> sys.stderr, __doc__.strip()
     sys.exit(1)
 
-def get_ip_or_hostname_from_alias(alias, hosts_conf, ip_or_hostname='hostname'):
-    for k,v in hosts_conf.param.items():
-        if alias in v:
-            if ip_or_hostname == "hostname":
-                return hosts_conf.param[k][0]
-            elif ip_or_hostname == "ip":
-                return k
-            else:
-                raise Error("Wrong parameter provided. Must be 'hostname' or 'ip'")
-
 class Console:
     def __init__(self, title=None, width=60, height=20):
         self.width = width
@@ -123,7 +113,8 @@ class SylepsConsole:
     block_devices = block.BlockDevices()
     syleps = Syleps(config)
     var_dir = config.get_param('var_dir')
-
+    ifnames = ifutil.get_filtered_ifnames()
+    
     def __init__(self, advanced_enabled=True):
         # Console attribute
         title = "Syleps Linux Configuration Console"
@@ -131,9 +122,7 @@ class SylepsConsole:
         self.height = 25
         self.alias = self.config.get_param('alias')
         self.fs2extend_file = os.path.join(self.var_dir, 'fs2extend')
-        self.ifnames = ifutil.get_filtered_ifnames()
-        self.default_nic = ifutil.get_default_nic(self.config)
-        self.default_nic_set = False
+        self.default_nic = self.get_default_nic()
         self.console = Console(title, self.width, self.height)
         self.appname = "Syleps Linux"
 
@@ -171,7 +160,7 @@ class SylepsConsole:
         return "%s-%s-%s" % (prefix, fd, uuid)
 
     @classmethod
-    def _get_default_nic(self):
+    def get_default_nic(self):
         def _validip(ifname):
             ip = SysInterfaceInfo(ifname).address
             if ip and not ip.startswith('169'):
@@ -180,7 +169,7 @@ class SylepsConsole:
 
         self.default_nic_set = False
         try:
-            ifname = self.config.param['default_nic']
+            ifname = self.config.get_param('default_nic')
         except KeyError:
             ifname = None
 
@@ -706,6 +695,7 @@ class SylepsConsole:
         param = 'default_nic'
         self.config.del_param(param)
         self.config.set_param(param, self.default_nic)
+        self.config.write_conf()
         self.default_nic_set = True
 
         text = self._get_ifconftext(self.default_nic)
@@ -744,7 +734,7 @@ class SylepsConsole:
             if not self.advanced_enabled:
                 fatal(error)
             self._check_error(error)
-            self.default_nic = self.config.param['default_nic']
+            self.default_nic = self.config.get_param('default_nic')
             return "networking"
 
         #display usage

@@ -338,29 +338,3 @@ def get_filtered_ifnames():
 
     ifnames.sort()
     return ifnames
-
-def get_default_nic(conf):
-    '''
-    Get default nic from bootconsole.conf file or
-    take the first interface from filtered list
-    '''
-    def _validip(ifname):
-        ip = get_ipconf(ifname)[0]
-        if ip and not ip.startswith('169'):
-            return True
-        return False
-
-    try:
-        ifname = conf.get_param('default_nic')
-    except KeyError:
-        ifname = None
-
-    if ifname:
-        if _validip(ifname):
-            return ifname
-
-    for ifname in get_filtered_ifnames():
-        if _validip(ifname):
-            return ifname
-
-    return None
