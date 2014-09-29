@@ -704,6 +704,7 @@ class SylepsConsole:
 
     def keep_ifconf(self):
         param = 'default_nic'
+        self.config.del_param(param)
         self.config.set_param(param, self.default_nic)
         self.default_nic_set = True
 
