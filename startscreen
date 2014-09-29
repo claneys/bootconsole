@@ -133,8 +133,7 @@ class SylepsConsole:
         self.fs2extend_file = os.path.join(self.var_dir, 'fs2extend')
         self.ifnames = ifutil.get_filtered_ifnames()
         self.default_nic = ifutil.get_default_nic(self.config)
-        if self.default_nic:
-            self.default_nic_set = True
+        self.default_nic_set = False
         self.console = Console(title, self.width, self.height)
         self.appname = "Syleps Linux"
 
