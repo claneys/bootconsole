@@ -91,7 +91,7 @@ class NetworkSettings:
         filepath = self._filepath_assembler(ifname)
         ifconf = "DEVICE=%s\nBOOTPROTO=none\nONBOOT=yes" % (ifname)
         ifconf = ["DEVICE=%s" % ifname,
-                  "BOOTPROTO=none",
+                  "BOOTPROTO=static",
                   "IPADDR=%s" % addr,
                   "NETMASK=%s" % netmask,
                   "ONBOOT=yes"]
