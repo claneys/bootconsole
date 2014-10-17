@@ -162,7 +162,7 @@ class Syleps:
             output = cmd.communicate(input=password)
             retcode = cmd.wait()
             if retcode != 0:
-                return 'Changing user system password to %s error!% password'
+                return 'Changing %s password error! Output : %s'% (user, password, output)
         
     def record_checksums(self):
         '''
