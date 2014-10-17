@@ -614,7 +614,9 @@ class SylepsConsole:
             self._check_error(err)
 
             # Change Syleps ux user password as it rely on hostname.
-            err = self.syleps.change_su_password()
+            err = self.syleps.change_su_password(hostname, alias)
+            self._check_error(err)
+            err = self.syleps.user_passwd(hostname, alias)
             self._check_error(err)
 
             err = self.syleps.record_checksums()

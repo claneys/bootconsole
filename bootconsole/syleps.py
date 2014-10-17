@@ -2,6 +2,7 @@
 
 import re
 import os
+import subprocess
 import executil
 from datetime import datetime
 import netinfo
@@ -23,34 +24,53 @@ class Syleps:
     def __init__(self, bootconsole_conf=conf.Conf('bootconsole.conf')):
         self.var_dir = bootconsole_conf.get_param('var_dir')
         if bootconsole_conf.get_param('alias') == 'ofm11g':
-            self.as_user = bootconsole_conf.get_param('as_user')
-            self.suas_user = bootconsole_conf.get_param('suas_user')
-            self.conf_files = { 'as_tnsnames' : self._find_file_in_homedir(self.as_user, 'tnsnames.ora'),
-                                'as_formsweb' : self._find_file_in_homedir(self.as_user, 'formsweb.cfg'),
-                                'as_dads' : self._find_file_in_homedir(self.as_user, 'dads.conf', exclude='FRHome'),
-                                'suas_profile' : os.path.expanduser('~'+self.suas_user+'/.profile'),
-                                'suas_profile_spec' : os.path.expanduser('~'+self.suas_user+'/.profile.spec'),
-                                'suas_profile_ora' : os.path.expanduser('~'+self.suas_user+'/.profile.ora'),
-                                'suas_profile_std' : os.path.expanduser('~'+self.suas_user+'/.profile.std'),
+            self.users = {'as_user': bootconsole_conf.get_param('as_user'),
+                          'suas_user' : bootconsole_conf.get_param('suas_user')}
+            self.conf_files = { 'as_tnsnames' : self._find_file_in_homedir(self.users['as_user'], 'tnsnames.ora'),
+                                'as_formsweb' : self._find_file_in_homedir(self.users['as_user'], 'formsweb.cfg'),
+                                'as_dads' : self._find_file_in_homedir(self.users['as_user'], 'dads.conf', exclude='FRHome'),
+                                'suas_profile' : os.path.expanduser('~'+self.users['suas_user']+'/.profile'),
+                                'suas_profile_spec' : os.path.expanduser('~'+self.users['suas_user']+'/.profile.spec'),
+                                'suas_profile_ora' : os.path.expanduser('~'+self.users['suas_user']+'/.profile.ora'),
+                                'suas_profile_std' : os.path.expanduser('~'+self.users['suas_user']+'/.profile.std'),
                               }
         else:
-            self.db_user = bootconsole_conf.get_param('db_user')
-            self.suux_user = bootconsole_conf.get_param('suux_user')
-            self.conf_files = { 'db_tnsnames': self._find_file_in_homedir(self.db_user, 'tnsnames.ora'),
-                                'db_listener' : self._find_file_in_homedir(self.db_user, 'listener.ora'),
-                                'suux_profile' : os.path.expanduser('~'+self.suux_user+'/.profile'),
-                                'suux_profile_spec' : os.path.expanduser('~'+self.suux_user+'/.profile.spec'),
-                                'suux_profile_ora' : os.path.expanduser('~'+self.suux_user+'/.profile.ora'),
-                                'suux_profile_std' : os.path.expanduser('~'+self.suux_user+'/.profile.std')
+            self.users = {'db_user': bootconsole_conf.get_param('db_user'),
+                          'suux_user' : bootconsole_conf.get_param('suux_user'),
+                          'sutr_user' : bootconsole_conf.get_param('sutr_user')}
+            self.conf_files = { 'db_tnsnames': self._find_file_in_homedir(self.users['db_user'], 'tnsnames.ora'),
+                                'db_listener' : self._find_file_in_homedir(self.users['db_user'], 'listener.ora'),
+                                'suux_profile' : os.path.expanduser('~'+self.users['suux_user']+'/.profile'),
+                                'suux_profile_spec' : os.path.expanduser('~'+self.users['suux_user']+'/.profile.spec'),
+                                'suux_profile_ora' : os.path.expanduser('~'+self.users['suux_user']+'/.profile.ora'),
+                                'suux_profile_std' : os.path.expanduser('~'+self.users['suux_user']+'/.profile.std')
                               }
         
+        
+    def _is_syleps_compliant(self, hostname):
+        # make sure that we act on shortname
+        shortname = self._get_shortname(hostname)
+        if re.search(r'^[a-zA-Z0-9]{3,6}(db|as)su[ptrmd]$', shortname) :
+            return True
+        return False
+    
+    @staticmethod
+    def _get_shortname(hostname):
+        return hostname.split('.')[0]
+    
     def _make_password(self):
         '''
         Determine su ux user password based on hostname
         '''
-        hostname = netinfo.NetworkInfo().hostname.split('.')[0]
-        password = re.sub(r'(db|as)(su)', r'pw\2', hostname)
-        return password
+        if self._is_syleps_compliant(self.shortname):
+            password = re.sub(r'(db|as)(su)', r'pw\2', self.shortname)
+            return password
+        for elt in self.alias:
+            if self._is_syleps_compliant(elt):
+                elt = self._get_shortname(elt)
+                password = re.sub(r'(db|as)(su)', r'pw\2', elt)
+                return password
+        raise Exception('Can\'t make password. Check hostname and alias.')
         
     def _find_file_in_homedir(self, user, file2find, exclude=None):
         '''
@@ -92,15 +112,15 @@ class Syleps:
         pattern_replacement = r'\1' + password + r'\2'
 
         try:
-            userid_val = conf.get(self.suas_user, 'userid')
+            userid_val = conf.get(self.users['suas_user'], 'userid')
             userid_val = re.sub(r'(/).*(@)', pattern_replacement, userid_val)
 
-            conf.set(self.suas_user, 'userid', userid_val)
+            conf.set(self.users['suas_user'], 'userid', userid_val)
             conf.write(open(self.conf_files['as_formsweb'],'w'))
         except ConfigParser.NoSectionError:
-            return 'No section "%s" into formsweb.cfg file.' % self.suas_user
+            return 'No section "%s" into formsweb.cfg file.' % self.users['suas_user']
 
-    def change_su_password(self):
+    def change_su_password(self, hostname, alias):
         '''
         Process su ux password change and launch tcho
         change_hostname.sh script that change password in
@@ -108,6 +128,8 @@ class Syleps:
         Param: None
         Return:  if error on change_hostname.sh
         '''
+        self.shortname = self._get_shortname(hostname)
+        self.alias = alias
         password = self._make_password()
         err = []
         try:
@@ -119,13 +141,13 @@ class Syleps:
                 dads_conf = conf.Conf(self.conf_files['as_dads'])
                 err.append(self._change_dads(dads_conf, password))
 
-            user = self.suas_user
+            user = self.users['suas_user']
 
             if err != []:
                 err.append('\nAbort changing SU password.\nAnyway, your hosts file was writen.')
                 return '\n'.join(err)
         except KeyError:
-            user = self.suux_user
+            user = self.users['suux_user']
             pass
         
         try:
@@ -133,6 +155,15 @@ class Syleps:
         except executil.ExecError:
             return 'Can\'t execute change_hostname.sh script.\nMay be user %s doesn\'t exists or script is missing.\nSU password has not been changed.' % user
 
+    def user_passwd(self, hostname, alias):
+        password = self._make_password()
+        for user in self.users:
+            cmd = subprocess.Popen(['/usr/bin/passwd', '--stdin', user], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            output = cmd.communicate(input=password)
+            retcode = cmd.wait()
+            if retcode != 0:
+                return 'Changing user system password error!'
+        
     def record_checksums(self):
         '''
         Record files checksum about Syleps essentials files that do not have 
