@@ -157,12 +157,12 @@ class Syleps:
 
     def user_passwd(self, hostname, alias):
         password = self._make_password()
-        for user in self.users:
+        for user in self.users.values():
             cmd = subprocess.Popen(['/usr/bin/passwd', '--stdin', user], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
             output = cmd.communicate(input=password)
             retcode = cmd.wait()
             if retcode != 0:
-                return 'Changing user system password error!'
+                return 'Changing user system password to %s error!% password'
         
     def record_checksums(self):
         '''
