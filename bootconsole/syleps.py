@@ -143,6 +143,9 @@ class Syleps:
 
             user = self.users['suas_user']
 
+            # Dirty workaroud to Empty err element
+            err = filter(None, err)       
+            
             if err != []:
                 err.append('\nAbort changing SU password.\nAnyway, your hosts file was writen.')
                 return '\n'.join(err)
