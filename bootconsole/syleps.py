@@ -58,12 +58,12 @@ class Syleps:
     def _get_shortname(hostname):
         return hostname.split('.')[0]
     
-    def _make_password(self):
+    def _make_password(self, hostname):
         '''
         Determine su ux user password based on hostname
         '''
-        if self._is_syleps_compliant(self.shortname):
-            password = re.sub(r'(db|as)(su)', r'pw\2', self.shortname)
+        if self._is_syleps_compliant(hostname):
+            password = re.sub(r'(db|as)(su)', r'pw\2', self._get_shortname(hostname))
             return password
         for elt in self.alias:
             if self._is_syleps_compliant(elt):
@@ -120,7 +120,13 @@ class Syleps:
         except ConfigParser.NoSectionError:
             return 'No section "%s" into formsweb.cfg file.' % self.users['suas_user']
 
-    def change_su_password(self, hostname, alias):
+    def change_password(self, hostname, alias):
+        self.alias = alias
+        password = self._make_password(hostname)
+        self.change_su_password(password)
+        self.change_system_passwd(password)
+
+    def change_su_password(self, password):
         '''
         Process su ux password change and launch tcho
         change_hostname.sh script that change password in
@@ -128,9 +134,6 @@ class Syleps:
         Param: None
         Return:  if error on change_hostname.sh
         '''
-        self.shortname = self._get_shortname(hostname)
-        self.alias = alias
-        password = self._make_password()
         err = []
         try:
             if self.conf_files['as_formsweb'] != None:
@@ -158,14 +161,18 @@ class Syleps:
         except executil.ExecError:
             return 'Can\'t execute change_hostname.sh script.\nMay be user %s doesn\'t exists or script is missing.\nSU password has not been changed.' % user
 
-    def user_passwd(self, hostname, alias):
-        password = self._make_password()
+    def change_system_passwd(self, password):
         for user in self.users.values():
-            cmd = subprocess.Popen(['/usr/bin/passwd', '--stdin', user], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-            output = cmd.communicate(input=password)
-            retcode = cmd.wait()
+            cmd_sys = subprocess.Popen(['/usr/bin/passwd', '--stdin', user], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            output = cmd_sys.communicate(input=password)
+            retcode = cmd_sys.wait()
             if retcode != 0:
-                return 'Changing %s password error! Output : %s'% (user, password, output)
+                return 'Changing %s password error! Output : %s'% (user, output)
+            cmd_smb = subprocess.Popen(['/usr/bin/passwd', '-s', user], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            output = cmd_smb.communicate(input=password)
+            retcode = cmd_smb.wait()
+            if retcode != 0:
+                return 'Changing %s samba password error! Output : %s'% (user, output)    
         
     def record_checksums(self):
         '''

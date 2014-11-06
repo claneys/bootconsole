@@ -111,7 +111,7 @@ class SylepsConsole:
     NetworkInfo = NetworkInfo()
     config = conf.Conf("bootconsole.conf")
     block_devices = block.BlockDevices()
-    syleps = Syleps(config)
+    syleps = Syleps(bootconsole_conf=config)
     var_dir = config.get_param('var_dir')
     ifnames = ifutil.get_filtered_ifnames()
     
@@ -614,9 +614,7 @@ class SylepsConsole:
             self._check_error(err)
 
             # Change Syleps ux user password as it rely on hostname.
-            err = self.syleps.change_su_password(hostname, alias)
-            self._check_error(err)
-            err = self.syleps.user_passwd(hostname, alias)
+            err = self.syleps.change_password(hostname, alias)
             self._check_error(err)
 
             err = self.syleps.record_checksums()
