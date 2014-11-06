@@ -123,8 +123,11 @@ class Syleps:
     def change_password(self, hostname, alias):
         self.alias = alias
         password = self._make_password(hostname)
-        self.change_su_password(password)
-        self.change_system_passwd(password)
+        ret = []
+        ret.append(self.change_su_password(password))
+        ret.append(self.change_system_passwd(password))
+        
+        return '\n'.join(ret)
 
     def change_su_password(self, password):
         '''
