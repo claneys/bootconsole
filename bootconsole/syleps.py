@@ -166,16 +166,17 @@ class Syleps:
 
     def change_system_passwd(self, password):
         for user in self.users.values():
-            cmd_sys = subprocess.Popen(['/usr/bin/passwd', '--stdin', user], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-            output = cmd_sys.communicate(input=password)
-            retcode = cmd_sys.wait()
-            if retcode != 0:
-                return 'Changing %s password error! Output : %s'% (user, output)
-            cmd_smb = subprocess.Popen(['/usr/bin/passwd', '-s', user], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-            output = cmd_smb.communicate(input=password)
-            retcode = cmd_smb.wait()
-            if retcode != 0:
-                return 'Changing %s samba password error! Output : %s'% (user, output)    
+            if re.search(r'^su', user):
+                cmd_sys = subprocess.Popen(['/usr/bin/passwd', '--stdin', user], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+                output = cmd_sys.communicate(input=password)
+                retcode = cmd_sys.wait()
+                if retcode != 0:
+                    return 'Changing %s password error! Output : %s'% (user, output)
+                cmd_smb = subprocess.Popen(['/usr/bin/smbpasswd', '-s', user], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+                output = cmd_smb.communicate(input=password+'\n'+password)
+                retcode = cmd_smb.wait()
+                if retcode != 0:
+                    return 'Changing %s samba password error! Output : %s'% (user, output)
         
     def record_checksums(self):
         '''
