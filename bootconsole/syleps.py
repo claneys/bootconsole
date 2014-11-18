@@ -26,7 +26,7 @@ class Syleps:
         self.var_dir = bootconsole_conf.get_param('var_dir')
         if bootconsole_conf.get_param('alias') == 'ofm11g':
             as_user = bootconsole_conf.get_param('as_user')
-            self.su_users = bootconsole_conf.get_param('suas_user')
+            self.su_user = bootconsole_conf.get_param('suas_user')
             self.conf_files = { 'as_tnsnames' : self._find_file_in_homedir(as_user, 'tnsnames.ora'),
                                 'as_formsweb' : self._find_file_in_homedir(as_user, 'formsweb.cfg'),
                                 'as_dads' : self._find_file_in_homedir(as_user, 'dads.conf', exclude='FRHome'),
