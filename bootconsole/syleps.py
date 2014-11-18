@@ -36,8 +36,7 @@ class Syleps:
                               }
         else:
             self.users = {'db_user': bootconsole_conf.get_param('db_user'),
-                          'suux_user' : bootconsole_conf.get_param('suux_user'),
-                          'sutr_user' : bootconsole_conf.get_param('sutr_user')}
+                          'suux_user' : bootconsole_conf.get_param('suux_user')}
             self.conf_files = { 'db_tnsnames': self._find_file_in_homedir(self.users['db_user'], 'tnsnames.ora'),
                                 'db_listener' : self._find_file_in_homedir(self.users['db_user'], 'listener.ora'),
                                 'suux_profile' : os.path.expanduser('~'+self.users['suux_user']+'/.profile'),
@@ -127,6 +126,7 @@ class Syleps:
         ret.append(self.change_su_password(password))
         ret.append(self.change_system_passwd(password))
         
+        ret = filter(None, ret)
         return '\n'.join(ret)
 
     def change_su_password(self, password):
