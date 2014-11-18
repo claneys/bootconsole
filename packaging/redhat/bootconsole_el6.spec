@@ -1,6 +1,6 @@
 %define name bootconsole
 %define version 1.24
-%define release 4.el6
+%define release 5.el6
 
 Summary: Boot Ncurses Console configuration
 Name: %{name}
@@ -14,7 +14,7 @@ Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Prefix: %{_prefix}
 BuildArch: noarch
-Vendor: Romain Forlot <romain.forlot@syleps.fr>
+Vendor: Syleps SA <support-sic@syleps.fr>
 Url: http:/github.com/claneys/bootconsole
 Requires: dialog, python-iniparse
 
