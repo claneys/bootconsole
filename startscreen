@@ -240,7 +240,7 @@ class SylepsConsole:
                 if ifmethod:
                     desc += " (%s)" % ifmethod
 
-                if ifname == self._get_default_nic():
+                if ifname == self.get_default_nic():
                     desc += " [*]"
             else:
                 desc = "not configured"

@@ -94,11 +94,10 @@ class NetworkSettings:
                   "BOOTPROTO=static",
                   "IPADDR=%s" % addr,
                   "NETMASK=%s" % netmask,
+                  "GATEWAY=%s" % gateway,
                   "ONBOOT=yes"]
 
         networkconf = ["NETWORKING=yes"]
-        if gateway:
-            networkconf.append("GATEWAY=%s" % gateway)
 
         resolvconf = []
         if nameservers:
