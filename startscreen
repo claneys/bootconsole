@@ -120,7 +120,7 @@ class SylepsConsole:
         title = "Syleps Linux Configuration Console"
         self.width = 80
         self.height = 25
-        self.alias = self.config.get_param('alias')
+        self.alias, self.peer_alias = self._get_alias()
         self.fs2extend_file = os.path.join(self.var_dir, 'fs2extend')
         self.default_nic = self.get_default_nic()
         self.console = Console(title, self.width, self.height)
@@ -147,6 +147,26 @@ class SylepsConsole:
                 os.remove(self.fs2extend_file)
         except conf.Error:
             pass
+
+    def _get_alias(self):
+        alias = self.config.get_param('alias')
+        peer_alias = self.config.get_param('peer_alias')
+        if not alias.startswith('Could not find') and not peer_alias.startswith('Could not find'):
+            return (alias, peer_alias)
+        else:
+            appliances = (('oradb12c', 'Oracle DB 12c'), ('oradb11g', 'Oracle DB 11g'), ('ofm11g', 'Oracle Fusion Middleware 11g'))
+            
+            DB_AS_Console = Console(title='Syleps SU Appliance', width=85, height=25)
+            retcode, alias = DB_AS_Console.menu('Appliance choices', 'Which appliance is ?', appliances, no_cancel=True)
+            retcode, peer_alias = DB_AS_Console.menu('Appliance choices', 'And the peer appliance is ?', appliances, no_cancel=True)
+            
+            self.config.del_param('alias')
+            self.config.del_param('peer_alias')
+            self.config.set_param('alias', alias)
+            self.config.set_param('peer_alias', peer_alias)
+            self.config.write_conf()
+            
+            return (alias, peer_alias)
 
     def _get_serial(self):
         prefix = { 'oradb11g': 'db', 'ofm11g': 'as'}.get(self.alias, 'Invalid_alias')
