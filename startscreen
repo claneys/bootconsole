@@ -154,10 +154,13 @@ class SylepsConsole:
         if not alias.startswith('Could not find') and not peer_alias.startswith('Could not find'):
             return (alias, peer_alias)
         else:
-            appliances = (('oradb12c', 'Oracle DB 12c'), ('oradb11g', 'Oracle DB 11g'), ('ofm11g', 'Oracle Fusion Middleware 11g'))
+            appliances = [('oradb12c', 'Oracle DB 12c'), ('oradb11g', 'Oracle DB 11g'), ('ofm11g', 'Oracle Fusion Middleware 11g')]
             
             DB_AS_Console = Console(title='Syleps SU Appliance', width=85, height=25)
             retcode, alias = DB_AS_Console.menu('Appliance choices', 'Which appliance is ?', appliances, no_cancel=True)
+            for elt in appliances:
+                if elt[0] == alias:
+                    appliances.remove(elt)
             retcode, peer_alias = DB_AS_Console.menu('Appliance choices', 'And the peer appliance is ?', appliances, no_cancel=True)
             
             self.config.del_param('alias')
