@@ -172,7 +172,7 @@ class SylepsConsole:
             return (alias, peer_alias)
 
     def _get_serial(self):
-        prefix = { 'oradb11g': 'db', 'ofm11g': 'as'}.get(self.alias, 'Invalid_alias')
+        prefix = { 'oradb12c': 'db', 'oradb11g': 'db', 'ofm11g': 'as'}.get(self.alias, 'Invalid_alias')
         fd = time.gmtime(os.stat(conf.path('usage.txt'))[-2])
         fd = time.strftime('%y%m%d', fd)
         try:
@@ -551,7 +551,7 @@ class SylepsConsole:
             # Peer hosts are application server or database host composing
             # the appliance.
             hosts_conf = conf.Conf('hosts')
-            ntp_conf.set_param('peer', hosts_conf.get_host(self.alias, get_peer=True)['alias'])
+            ntp_conf.set_param('peer', self.peer_alias)
             err = ntp_conf.write_conf()
             self._check_error(err)
             executil.system('/sbin/service ntpd restart > /dev/null 2>&1')
@@ -590,7 +590,7 @@ class SylepsConsole:
         hosts_conf = conf.Conf("hosts")
         ifname = self.default_nic
         input = [None, None, None, None, None]
-        peer_host = hosts_conf.get_host(self.alias, get_peer=True)
+        peer_host = hosts_conf.get_host(self.peer_alias)
         input[0] = self.NetworkInfo.hostname
         try:
             input[1] = hosts_conf.get_host(self.alias)['others_alias']
@@ -603,13 +603,15 @@ class SylepsConsole:
         fields = []
         field_width = 50
         field_limit = 50
+        
+        label_mapping = {'oradb11g': 'DB', 'oradb12c': 'DB', 'ofm11g': 'AS'}
 
         while 1:
             fields.append(("Hostname", input[0], field_width, field_limit))
             fields.append(("Additional(s) alias", input[1], field_width, field_limit))
-            fields.append((peer_host['label'] + " hostname", input[2], field_width, field_limit))
-            fields.append((peer_host['label'] + " additional(s) alias", input[3], field_width, field_limit))
-            fields.append((peer_host['label'] + " IP address", input[4], field_width, field_limit))
+            fields.append((label_mapping[self.peer_alias] + " hostname", input[2], field_width, field_limit))
+            fields.append((label_mapping[self.peer_alias] + " additional(s) aliases", input[3], field_width, field_limit))
+            fields.append((label_mapping[self.peer_alias] + " IP address", input[4], field_width, field_limit))
             
             text = "Set /etc/hosts entries. Hostname can be shortname or fqdn.\nSpecify comma separated alias. There are optionnal and let you add hostname to be resolved."
             retcode, input = self.console.form("Hosts settings", text, fields)
@@ -623,17 +625,18 @@ class SylepsConsole:
 
             ip = ifutil.get_ipconf(ifname)[0]
             hostname = input[0]
-            alias = input[1].split(',')
+            aliases = input[1].split(',')
             peer_hostname = input[2]
-            peer_alias = input[3].split(',')
+            peer_aliases = input[3].split(',')
             peer_ip = input[4]
 
-            err = _validate(hostname, alias, peer_hostname, peer_alias, peer_ip)
+            err = _validate(hostname, aliases, peer_hostname, peer_aliases, peer_ip)
             if err:
                 err = "\n".join(err)
             else:
-                alias.append(self.alias)
-                err = hosts_conf.set_hosts(ip, hostname, alias, peer_hostname, peer_alias, peer_ip)
+                aliases.append(self.alias)
+                peer_aliases.append(self.peer_alias)
+                err = hosts_conf.set_hosts(ip, hostname, aliases, peer_hostname, peer_aliases, peer_ip)
             self._check_error(err)
 
             # Change Syleps ux user password as it rely on hostname.

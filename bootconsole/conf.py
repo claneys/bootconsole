@@ -115,15 +115,7 @@ class Conf:
             fh.write(line)
         fh.close()
 
-    def set_hosts(self, ip, hostname, alias, peer_hostname, peer_alias, peer_ip):
-        try:
-            if alias.count("ofm11g") == 1:
-                peer_alias.append("oradb11g")
-            elif alias.count("oradb11g") == 1:
-                peer_alias.append("ofm11g")
-        except:
-            raise Exception('Alias ('+' '.join(alias)+') configured in bootconsole.conf file isn\'t correct. Please fix it.')
-
+    def set_hosts(self, ip, hostname, aliases, peer_hostname, peer_aliases, peer_ip):
         # Set domain name if not provided
         if not '.' in hostname:
             hostname = hostname + ".sydel.univers"
@@ -132,12 +124,12 @@ class Conf:
 
         ifutil.NetworkSettings().set_hostname(hostname)
 
-        all_alias = alias+peer_alias
+        all_aliases = aliases+peer_aliases
         original_content = []
         is_custom = False
         fh = open(self.conf_file, 'r')
         for line in fh.readlines():
-            for pattern in all_alias:
+            for pattern in all_aliases:
                     if re.search(pattern, line) is not None:
                         continue
             if line.startswith('# End Syleps'):
@@ -167,36 +159,22 @@ class Conf:
         fh.writelines(original_content)
         fh.write("# Syleps configuration\n")
         fh.write("# Don't modify this part !\n")
-        fh.write(ip + "\t" + hostname + "\t" + shortname + '\t'.join(alias) +"\n")
-        fh.write(peer_ip + "\t" + peer_hostname + "\t" + peer_shortname + '\t'.join(peer_alias)+"\n")
+        fh.write(ip + "\t" + hostname + "\t" + shortname + '\t'.join(aliases) +"\n")
+        fh.write(peer_ip + "\t" + peer_hostname + "\t" + peer_shortname + '\t'.join(peer_aliases)+"\n")
         fh.write("# End Syleps hosts\n")
         fh.close()
 
-    def get_host(self, alias, get_peer=False):
-        # Define alias mapping to display correct label into dialog form
-        # { alias_in_conf: [peer_label, peer_alias] }
-        label_mapping = { 'ofm11g': {'label': 'DB', 'alias': 'oradb11g'},
-                          'oradb11g': { 'label': 'AS', 'alias': 'ofm11g'} }
-
-        # Inverse search to get peer host
-        if get_peer:
-            ret_alias = label_mapping[alias]['alias']
-            ret_label = label_mapping[alias]['label']
-        else:
-            ret_alias = alias
-            ret_label = label_mapping[label_mapping[alias]['alias']]['label']
+    def get_host(self, host):
 
         for elt in self.param:
-            if ret_alias in elt:
+            if host in elt:
                 v = elt.split()[1:]
                 other_alias = v[2:-1]
                 return { 'hostname': v[0],
                         'ip' : elt.split()[0],
                         'others_alias': ','.join(other_alias),
-                        'alias': ret_alias,
-                        'label': ret_label }
+                        'alias': ret_alias }
         return { 'hostname': '',
                  'ip': '',
                  'others_alias': '',
-                 'alias': '',
-                 'label': '' }
+                 'alias': '' }
