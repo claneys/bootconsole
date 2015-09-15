@@ -496,7 +496,10 @@ class SylepsConsole:
         text='Configure on which ntp server we synchronize to. At least one server needed.'
         errors = []
 
-        ntp_conf = conf.Conf('ntp.conf')
+        try:
+            ntp_conf = conf.Conf('ntp.conf')
+        except:
+            ntp_conf = conf.Conf('chrony.conf')
 
         # Make sure we have a list as server parameter
         server = ntp_conf.get_param('server')

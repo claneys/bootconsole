@@ -52,8 +52,12 @@ class Syleps:
         self.conf_files['resolv'] = ifutil.NetworkSettings.RESOLV_FILE
         self.conf_files['network'] = ifutil.NetworkSettings.NETWORK_FILE
         self.conf_files['net_interface'] = '%s/ifcfg-%s' % (ifutil.NetworkSettings.IFCFG_DIR, bootconsole_conf.get_param('default_nic'))
+    
+    def __getProductsInstalled(self):
         
-    def _is_syleps_compliant(self, hostname):   
+        pass
+        
+    def _is_syleps_compliant(hostname):   
         # make sure that we act on shortname
         shortname = ifutil.get_shortname(hostname)
         if re.search(r'^[a-zA-Z0-9]{3,6}(db|as)su[ptrmd]$', shortname) :
@@ -64,11 +68,11 @@ class Syleps:
         '''
         Determine su ux user password based on hostname
         '''
-        if self._is_syleps_compliant(hostname):
+        if Syleps._is_syleps_compliant(hostname):
             password = re.sub(r'(db|as)(su)', r'pw\2', ifutil.get_shortname(hostname))
             return password
         for elt in self.alias:
-            if self._is_syleps_compliant(elt):
+            if Syleps._is_syleps_compliant(elt):
                 elt = ifutil.get_shortname(elt)
                 password = re.sub(r'(db|as)(su)', r'pw\2', elt)
                 return password

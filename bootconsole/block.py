@@ -32,7 +32,7 @@ class BlockDevices:
 
     def detect_part_type(self, part):
                 try:
-                    type = executil.getoutput('/usr/bin/file -s '+part+' | grep -Eo "LVM2|ext[0-9]|swap|extended"')
+                    type = executil.getoutput('/usr/bin/file -s '+part+' | grep -Eo "LVM2|ext[2-4]|XFS|swap|extended"')
                     return self.code_type[type]
                 except:
                     raise Error('Error: FS not compatible')
