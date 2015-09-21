@@ -120,13 +120,14 @@ class SylepsConsole:
         title = "Syleps Linux Configuration Console"
         self.width = 80
         self.height = 25
-        self.alias, self.peer_alias = self._get_alias()
-        self.fs2extend_file = os.path.join(self.var_dir, 'fs2extend')
-        self.default_nic = self.get_default_nic()
         self.console = Console(title, self.width, self.height)
         self.appname = "Syleps Linux"
-
         self.advanced_enabled = advanced_enabled
+
+        self.component = SylepsConsole.syleps.component
+        self.peer_component = SylepsConsole.syleps.peer_component
+        self.fs2extend_file = os.path.join(self.var_dir, 'fs2extend')
+        self.default_nic = self.get_default_nic()
 
         # Detect if we have to grow fs
         try:
@@ -148,31 +149,39 @@ class SylepsConsole:
         except conf.Error:
             pass
 
-    def _get_alias(self):
-        alias = self.config.get_param('alias')
-        peer_alias = self.config.get_param('peer_alias')
-        if not alias.startswith('Could not find') and not peer_alias.startswith('Could not find'):
-            return (alias, peer_alias)
-        else:
-            appliances = [('oradb12c', 'Oracle DB 12c'), ('oradb11g', 'Oracle DB 11g'), ('ofm11g', 'Oracle Fusion Middleware 11g')]
-            
-            DB_AS_Console = Console(title='Syleps SU Appliance', width=85, height=25)
-            retcode, alias = DB_AS_Console.menu('Appliance choices', 'Which appliance is ?', appliances, no_cancel=True)
-            for elt in appliances:
-                if elt[0] == alias:
-                    appliances.remove(elt)
-            retcode, peer_alias = DB_AS_Console.menu('Appliance choices', 'And the peer appliance is ?', appliances, no_cancel=True)
-            
-            self.config.del_param('alias')
-            self.config.del_param('peer_alias')
-            self.config.set_param('alias', alias)
-            self.config.set_param('peer_alias', peer_alias)
-            self.config.write_conf()
-            
-            return (alias, peer_alias)
+    def _first_run(self):
+        # Preliminary questions
+        fields = [
+            ("Hostname for this node:", '', 30, 30),
+            ("Hostname for the partner node:", '', 30, 30),
+        ]
+        self.console.form('Hostnames', 'What are hostnames for this appliance ?', fields)
+    #def _get_alias(self):
+    #    alias = self.config.get_param('alias')
+    #    peer_alias = self.config.get_param('peer_alias')
+    #    if not alias.startswith('Could not find') and not peer_alias.startswith('Could not find'):
+    #        return (alias, peer_alias)
+    #    else:
+    #        appliances = [('oradb12c', 'Oracle DB 12c'), ('oradb11g', 'Oracle DB 11g'), ('ofm11g', 'Oracle Fusion Middleware 11g')]
+    #        
+    #        DB_AS_Console = Console(title='Syleps SU Appliance', width=85, height=25)
+    #        retcode, alias = DB_AS_Console.menu('Appliance choices', 'Which appliance is ?', appliances, no_cancel=True)
+    #        for elt in appliances:
+    #            if elt[0] == alias:
+    #                appliances.remove(elt)
+    #        retcode, peer_alias = DB_AS_Console.menu('Appliance choices', 'And the peer appliance is ?', appliances, no_cancel=True)
+    #        
+    #        self.config.del_param('alias')
+    #        self.config.del_param('peer_alias')
+    #        self.config.set_param('alias', alias)
+    #        self.config.set_param('peer_alias', peer_alias)
+    #        self.config.write_conf()
+    #        
+    #        return (alias, peer_alias)
 
     def _get_serial(self):
-        prefix = { 'oradb12c': 'db', 'oradb11g': 'db', 'ofm11g': 'as'}.get(self.alias, 'Invalid_alias')
+        if self.component != 'as' and self.component != 'db':
+            raise Error('Wrong component specified %s. Only "as" or "db" allowed' % self.component)
         fd = time.gmtime(os.stat(conf.path('usage.txt'))[-2])
         fd = time.strftime('%y%m%d', fd)
         try:
@@ -180,7 +189,7 @@ class SylepsConsole:
         except:
             raise Error('This VM has never been validated')
 
-        return "%s-%s-%s" % (prefix, fd, uuid)
+        return "%s-%s-%s" % (self.component, fd, uuid)
 
     @classmethod
     def get_default_nic(self):
@@ -593,12 +602,12 @@ class SylepsConsole:
         hosts_conf = conf.Conf("hosts")
         ifname = self.default_nic
         input = [None, None, None, None, None]
-        peer_host = hosts_conf.get_host(self.peer_alias)
+        peer_host = hosts_conf.get_host(self.peer_component)
         input[0] = self.NetworkInfo.hostname
         try:
-            input[1] = hosts_conf.get_host(self.alias)['others_alias']
+            input[1] = hosts_conf.get_host(self.component)['aliases']
             input[2] = peer_host['hostname']
-            input[3] = peer_host['others_alias']
+            input[3] = peer_host['aliases']
             input[4] = peer_host['ip']
         except TypeError:
             pass
@@ -637,13 +646,13 @@ class SylepsConsole:
             if err:
                 err = "\n".join(err)
             else:
-                aliases.append(self.alias)
-                peer_aliases.append(self.peer_alias)
+                aliases.append(self.component)
+                peer_aliases.append(self.peer_component)
                 err = hosts_conf.set_hosts(ip, hostname, aliases, peer_hostname, peer_aliases, peer_ip)
             self._check_error(err)
 
             # Change Syleps ux user password as it rely on hostname.
-            err = self.syleps.change_password(hostname, alias)
+            err = self.syleps.change_password(hostname, aliases)
             self._check_error(err)
 
             err = self.syleps.record_checksums()

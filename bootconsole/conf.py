@@ -169,12 +169,12 @@ class Conf:
         for elt in self.param:
             if host in elt:
                 v = elt.split()[1:]
-                other_alias = v[2:-1]
+                aliases = v[2:-1]
                 return { 'hostname': v[0],
                         'ip' : elt.split()[0],
-                        'others_alias': ','.join(other_alias),
-                        'alias': ret_alias }
+                        'aliases': ','.join(aliases),
+                }
         return { 'hostname': '',
                  'ip': '',
-                 'others_alias': '',
-                 'alias': '' }
+                 'aliases': ''
+                }

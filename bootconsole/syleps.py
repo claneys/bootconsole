@@ -23,28 +23,36 @@ class Syleps:
     '''
 
     def __init__(self, bootconsole_conf=conf.Conf('bootconsole.conf')):
+        
         self.var_dir = bootconsole_conf.get_param('var_dir')
-        if bootconsole_conf.get_param('alias') == 'ofm11g':
-            as_user = bootconsole_conf.get_param('as_user')
-            self.su_user = bootconsole_conf.get_param('suas_user')
-            self.conf_files = { 'as_tnsnames' : self._find_file_in_homedir(as_user, 'tnsnames.ora'),
-                                'as_formsweb' : self._find_file_in_homedir(as_user, 'formsweb.cfg'),
-                                'as_dads' : self._find_file_in_homedir(as_user, 'dads.conf', exclude='FRHome'),
-                                'suas_profile' : os.path.expanduser('~'+as_user+'/.profile'),
-                                'suas_profile_spec' : os.path.expanduser('~'+as_user+'/.profile.spec'),
-                                'suas_profile_ora' : os.path.expanduser('~'+as_user+'/.profile.ora'),
-                                'suas_profile_std' : os.path.expanduser('~'+as_user+'/.profile.std'),
-                              }
-        else:
-            db_user = bootconsole_conf.get_param('db_user')
+        self.as_user = bootconsole_conf.get_param('as_user')
+        self.db_user = bootconsole_conf.get_param('db_user')
+        
+        OracleProductsInstalled = Syleps._getOracleProducts()
+        # Only process first product installed as we install one product by machine
+        if 'Database' in OracleProductsInstalled[0]:
+            self.component = 'db'
+            self.peer_component = 'as'
             self.su_user = bootconsole_conf.get_param('suux_user')
-            self.conf_files = { 'db_tnsnames': self._find_file_in_homedir(db_user, 'tnsnames.ora'),
-                                'db_listener' : self._find_file_in_homedir(db_user, 'listener.ora'),
-                                'suux_profile' : os.path.expanduser('~'+db_user+'/.profile'),
-                                'suux_profile_spec' : os.path.expanduser('~'+db_user+'/.profile.spec'),
-                                'suux_profile_ora' : os.path.expanduser('~'+db_user+'/.profile.ora'),
-                                'suux_profile_std' : os.path.expanduser('~'+db_user+'/.profile.std')
-                              }
+            self.conf_files = { 'db_tnsnames': Syleps._find_file_in_homedir(self.db_user, 'tnsnames.ora'),
+                                'db_listener' : Syleps._find_file_in_homedir(self.db_user, 'listener.ora'),
+                                'suux_profile' : os.path.expanduser('~'+self.su_user+'/.profile'),
+                                'suux_profile_spec' : os.path.expanduser('~'+self.su_user+'/.profile.spec'),
+                                'suux_profile_ora' : os.path.expanduser('~'+self.su_user+'/.profile.ora'),
+                                'suux_profile_std' : os.path.expanduser('~'+self.su_user+'/.profile.std')
+            }
+        else:
+            self.component = 'as'
+            self.peer_component = 'db'
+            self.su_user = bootconsole_conf.get_param('suas_user')
+            self.conf_files = { 'as_tnsnames' : Syleps._find_file_in_homedir(self.as_user, 'tnsnames.ora'),
+                                'as_formsweb' : Syleps._find_file_in_homedir(self.as_user, 'formsweb.cfg'),
+                                'as_dads' : Syleps._find_file_in_homedir(self.as_user, 'dads.conf', exclude='FRHome'),
+                                'suas_profile' : os.path.expanduser('~'+self.su_user+'/.profile'),
+                                'suas_profile_spec' : os.path.expanduser('~'+self.su_user+'/.profile.spec'),
+                                'suas_profile_ora' : os.path.expanduser('~'+self.su_user+'/.profile.ora'),
+                                'suas_profile_std' : os.path.expanduser('~'+self.su_user+'/.profile.std'),
+            }
         
         # Append system configuration files
         self.conf_files['ntp'] = '/etc/ntp.conf'
@@ -53,10 +61,27 @@ class Syleps:
         self.conf_files['network'] = ifutil.NetworkSettings.NETWORK_FILE
         self.conf_files['net_interface'] = '%s/ifcfg-%s' % (ifutil.NetworkSettings.IFCFG_DIR, bootconsole_conf.get_param('default_nic'))
     
-    def __getProductsInstalled(self):
+    @staticmethod
+    def _getOracleProducts():
+        try:
+            opatch_cmd = Syleps._find_file_in_homedir(self.as_user, 'opatch')
+            users = [ self.as_user, self.db_user ]
+        except:
+            opatch_cmd = Syleps._find_file_in_homedir(self.db_user, 'opatch')
+            users = [ self.db_user, self.as_user ]
         
-        pass
+        # Make awk cmd to extract only products installed, except Examples products.
+        begin_pattern = 'Installed Top-level Products'
+        end_pattern = 'There are [0-9]+ products installed in this Oracle Home'
+        awk_cmd = 'awk \'/%s/{f=1;next} /%s/ {f=0} f && ! /^$/ && ! /Example/ {print}\'' % (begin_pattern, end_pattern)
         
+        products = [ executil.getoutput('su - %s -c "%s lsinv" | %s' % (users[0], opatch_cmd, awk_cmd)).split('\n'),
+                    executil.getoutput('ssh -o StrictHostKeyChecking=no root@%s "su - %s -c \'opatch lsinv\' | %s' % (peer_host, users[1], awk_cmd).split('\n'))
+                   ]
+        
+        return products
+        
+    @staticmethod
     def _is_syleps_compliant(hostname):   
         # make sure that we act on shortname
         shortname = ifutil.get_shortname(hostname)
@@ -64,21 +89,22 @@ class Syleps:
             return True
         return False
     
-    def _make_password(self, hostname):
+    def _make_password(self, hostname, aliases):
         '''
         Determine su ux user password based on hostname
         '''
         if Syleps._is_syleps_compliant(hostname):
             password = re.sub(r'(db|as)(su)', r'pw\2', ifutil.get_shortname(hostname))
             return password
-        for elt in self.alias:
+        for elt in aliases:
             if Syleps._is_syleps_compliant(elt):
                 elt = ifutil.get_shortname(elt)
                 password = re.sub(r'(db|as)(su)', r'pw\2', elt)
                 return password
         raise Exception('Can\'t make password. Check hostname and alias.')
-        
-    def _find_file_in_homedir(self, user, file2find, exclude=None):
+    
+    @staticmethod
+    def _find_file_in_homedir(user, file2find, exclude=None):
         '''
         Use to find a file into a home directory.
         Param : user, file2find and exclude regex pattern
@@ -94,6 +120,8 @@ class Syleps:
             for filee in files:
                 if filee == file2find and not re.search(excludepattern, root):
                     return os.path.join(root, file2find)
+                
+        raise(Exception("File not found, or wrong user selected!"))
 
     def _change_dads(self, conf, password):
         '''
@@ -126,9 +154,8 @@ class Syleps:
         except ConfigParser.NoSectionError:
             return 'No section "%s" into formsweb.cfg file.' % self.su_user
 
-    def change_password(self, hostname, alias):
-        self.alias = alias
-        password = self._make_password(hostname)
+    def change_password(self, hostname, aliases):
+        password = self._make_password(hostname, aliases)
         ret = []
         ret.append(self.change_su_password(password))
         ret.append(self.change_system_passwd(password))
