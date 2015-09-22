@@ -381,12 +381,10 @@ class SylepsConsole:
                 ("IP Address", input[0], field_width, field_limit),
                 ("Netmask", input[1], field_width, field_limit),
                 ("Default Gateway", input[2], field_width, field_limit),
+                ("Name Server #1", input[3], field_width, field_limit),
+                ("Name Server #2", input[4], field_width, field_limit),
+                ("Search Domain", input[5], field_width, field_limit)
             ]
-
-            for i in range(len(input[3:])):
-                fields.append(("Name Server", input[3+i], field_width, field_limit))
-            
-            fields.append(("Search Domain", input[len(input)], field_width, field_limit))
 
             text = "Static IP configuration (%s)" % self.ifname
             retcode, input = self.console.form("Network settings", text, fields)
@@ -408,12 +406,14 @@ class SylepsConsole:
             for i in range(new_nameservers.count('')):
                 new_nameservers.remove('')
 
+            new_search_domain = input[5]
+            
             err = _validate(new_ip, new_netmask, new_gateway, new_nameservers)
             if err:
                 err = "\n".join(err)
             else:
                 err = ifutil.NetworkInterface(self.ifname).set_static(new_ip, new_netmask,
-                                        new_gateway, new_nameservers)
+                                        new_gateway, new_nameservers, new_search_domain)
                 if not err:
                     break
 
