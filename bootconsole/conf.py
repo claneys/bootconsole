@@ -159,6 +159,7 @@ class Conf:
         fh.writelines(original_content)
         fh.write("# Syleps configuration\n")
         fh.write("# Don't modify this part !\n")
+        fh.write("# @IP\tFQDN\tShortname\tOptionals aliases\tMandatory component specification\n")
         fh.write(ip + "\t" + hostname + "\t" + shortname + '\t'.join(aliases) +"\n")
         fh.write(peer_ip + "\t" + peer_hostname + "\t" + peer_shortname + '\t'.join(peer_aliases)+"\n")
         fh.write("# End Syleps hosts\n")

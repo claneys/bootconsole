@@ -113,7 +113,7 @@ class SylepsConsole:
     block_devices = block.BlockDevices()
     syleps = Syleps(bootconsole_conf=config)
     var_dir = config.get_param('var_dir')
-    ifnames = ifutil.get_filtered_ifnames()
+    ifnames = NetworkInfo.get_filtered_ifnames()
     
     def __init__(self, advanced_enabled=True):
         # Console attribute
@@ -124,6 +124,7 @@ class SylepsConsole:
         self.appname = "Syleps Linux"
         self.advanced_enabled = advanced_enabled
 
+        self._adv_hosts()
         self.component = SylepsConsole.syleps.component
         self.peer_component = SylepsConsole.syleps.peer_component
         self.fs2extend_file = os.path.join(self.var_dir, 'fs2extend')
@@ -155,33 +156,13 @@ class SylepsConsole:
             ("Hostname for this node:", '', 30, 30),
             ("Hostname for the partner node:", '', 30, 30),
         ]
-        self.console.form('Hostnames', 'What are hostnames for this appliance ?', fields)
-    #def _get_alias(self):
-    #    alias = self.config.get_param('alias')
-    #    peer_alias = self.config.get_param('peer_alias')
-    #    if not alias.startswith('Could not find') and not peer_alias.startswith('Could not find'):
-    #        return (alias, peer_alias)
-    #    else:
-    #        appliances = [('oradb12c', 'Oracle DB 12c'), ('oradb11g', 'Oracle DB 11g'), ('ofm11g', 'Oracle Fusion Middleware 11g')]
-    #        
-    #        DB_AS_Console = Console(title='Syleps SU Appliance', width=85, height=25)
-    #        retcode, alias = DB_AS_Console.menu('Appliance choices', 'Which appliance is ?', appliances, no_cancel=True)
-    #        for elt in appliances:
-    #            if elt[0] == alias:
-    #                appliances.remove(elt)
-    #        retcode, peer_alias = DB_AS_Console.menu('Appliance choices', 'And the peer appliance is ?', appliances, no_cancel=True)
-    #        
-    #        self.config.del_param('alias')
-    #        self.config.del_param('peer_alias')
-    #        self.config.set_param('alias', alias)
-    #        self.config.set_param('peer_alias', peer_alias)
-    #        self.config.write_conf()
-    #        
-    #        return (alias, peer_alias)
-
+        first_run = Console(title='First run wizard', width=85, height=25)
+        retcode, input = first_run.form('Hostnames', 'What are hostnames for this appliance ?', fields)
+        
+        
     def _get_serial(self):
-        if self.component != 'as' and self.component != 'db':
-            raise Error('Wrong component specified %s. Only "as" or "db" allowed' % self.component)
+        if self.component != 'AS' and self.component != 'DB':
+            raise Error('Wrong component specified %s. Only "AS" or "DB" allowed' % self.component)
         fd = time.gmtime(os.stat(conf.path('usage.txt'))[-2])
         fd = time.strftime('%y%m%d', fd)
         try:
@@ -404,6 +385,8 @@ class SylepsConsole:
 
             for i in range(len(input[3:])):
                 fields.append(("Name Server", input[3+i], field_width, field_limit))
+            
+            fields.append(("Search Domain", input[len(input)], field_width, field_limit))
 
             text = "Static IP configuration (%s)" % self.ifname
             retcode, input = self.console.form("Network settings", text, fields)
@@ -421,7 +404,7 @@ class SylepsConsole:
                 break
 
             new_ip, new_netmask, new_gateway = input[:3]
-            new_nameservers = input[3:]
+            new_nameservers = input[3:4]
             for i in range(new_nameservers.count('')):
                 new_nameservers.remove('')
 
@@ -430,7 +413,7 @@ class SylepsConsole:
                 err = "\n".join(err)
             else:
                 err = ifutil.NetworkInterface(self.ifname).set_static(new_ip, new_netmask,
-                                        new_gateway, new_nameservers, self.NetworkInfo.hostname)
+                                        new_gateway, new_nameservers)
                 if not err:
                     break
 
@@ -635,7 +618,7 @@ class SylepsConsole:
             for i in range(len(input)):
                 input[i] = input[i].strip()
 
-            ip = ifutil.get_ipconf(ifname)[0]
+            ip = SysInterfaceInfo(ifname).get_ipconf()[0]
             hostname = input[0]
             aliases = input[1].split(',')
             peer_hostname = input[2]
@@ -661,6 +644,7 @@ class SylepsConsole:
             break
 
         return 'advanced'
+    
     def _adv_timezone(self):
         timezones = []
         os.chdir('/usr/share/zoneinfo')
@@ -776,7 +760,7 @@ class SylepsConsole:
             return "networking"
 
         #display usage
-        ipaddr = ifutil.get_ipconf(ifname)[0]
+        ipaddr = SysInterfaceInfo(ifname).get_ipconf()[0]
         hostname = self.NetworkInfo.hostname
 
         #backwards compatible - use usage.txt if it exists

@@ -45,7 +45,15 @@ class Error(Exception):
     pass
 
 class NetworkInfo:
-    
+    @staticmethod
+    def is_hosts_already_configured(conf_file):
+        fh = open (conf_file, 'r')
+        for line in fh:
+            if "# Syleps configuration" in line or "# SYLEPS CONFCONSOLE" in line:
+                return True
+                
+        return False
+
     @staticmethod
     def is_legal_hostname(hostname):
         if re.search("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$", hostname) == None:
@@ -65,7 +73,11 @@ class NetworkInfo:
                 pass
 
         return ifnames
-
+    
+    @staticmethod
+    def get_shortname(hostname):
+        return hostname.split(".", 1)[0]
+    
     @classmethod
     def get_filtered_ifnames(self):
         ifnames = []

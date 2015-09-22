@@ -21,12 +21,18 @@ class NetworkSettings:
     IFCFG_DIR='/etc/sysconfig/network-scripts/'
     NETWORK_FILE='/etc/sysconfig/network'
     RESOLV_FILE='/etc/resolv.conf'
-    HEADER_SYLEPS = "# SYLEPS CONFCONSOLE"
+    HEADER_SYLEPS = "# Syleps configuration"
     WARN_SYLEPS = "# Don't modify this part !"
+    TUI_TOOL = '/usr/bin/nmtui'
 
     def __init__(self):
         self.read_conf()
-
+        # Detect whether or not we can configure network using a tui tool
+        try:
+            os.stat(TUI_TOOL)
+        except OSError:
+            pass
+        
     def read_conf(self):
         self.conf = {}
         self.conf_files = []
@@ -66,11 +72,7 @@ class NetworkSettings:
 
     def write_conf(self, filename, conf):
         self.read_conf()
-
-        if not self.unconfigured:
-            raise Error("refusing to write to %s\nheader not found: %s in ifcfg file.\nBootconsole not installed properly." %
-                        (filename, self.HEADER_SYLEPS))
-
+        
         fh = file(filename, "w")
         fh.write(self.HEADER_SYLEPS+'\n')
         fh.write(self.WARN_SYLEPS+'\n')
@@ -87,7 +89,7 @@ class NetworkSettings:
         ifconf = "DEVICE=%s\nBOOTPROTO=dhcp\nONBOOT=yes" % (ifname)
         self.write_conf(filepath, ifconf)
 
-    def set_static(self, ifname, addr, netmask, gateway=None, nameservers=[], hostname=None):
+    def set_static(self, ifname, addr, netmask, gateway=None, nameservers=[None, None], search_domain=None):
         filepath = self._filepath_assembler(ifname)
         ifconf = "DEVICE=%s\nBOOTPROTO=none\nONBOOT=yes" % (ifname)
         ifconf = ["DEVICE=%s" % ifname,
@@ -95,15 +97,17 @@ class NetworkSettings:
                   "IPADDR=%s" % addr,
                   "NETMASK=%s" % netmask,
                   "GATEWAY=%s" % gateway,
+                  "DNS1=%s" % nameservers[0],
+                  "DNS2=%s" % nameservers[1],
                   "ONBOOT=yes"]
-
+        
         networkconf = ["NETWORKING=yes"]
-
+        
         resolvconf = []
         if nameservers:
             for nameserver in nameservers:
                 resolvconf.append("nameserver %s" % nameserver)
-
+        
         ifconf = "\n".join(ifconf)
         networkconf = "\n".join(networkconf)
         resolvconf = "\n".join(resolvconf)
@@ -126,7 +130,7 @@ class NetworkSettings:
 
 
 class NetworkInterface:
-    """enumerate interface information from /etc/network/interfaces"""
+    """Enumerate interface information from /etc/sysconfig/network-scripts/ifcfg-*"""
 
     def __init__(self, ifname):
         self.ifname = ifname
@@ -230,110 +234,3 @@ class NetworkInterface:
             return values[1]
 
         return
-
-def get_nameservers(ifname):
-    #/etc/network/interfaces (static)
-    #interface = NetworkInterface(ifname)
-    #if interface.dns_nameservers:
-    #    return interface.dns_nameservers
-
-    def parse_resolv(path):
-        nameservers = []
-        for line in file(path).readlines():
-            if line.startswith('nameserver'):
-                nameservers.append(line.strip().split()[1])
-        return nameservers
-
-    #Debian relative
-    #resolvconf (dhcp)
-    #path = '/etc/resolvconf/run/interface'
-    #if os.path.exists(path):
-    #    for f in os.listdir(path):
-    #        if not f.startswith(ifname) or f.endswith('.inet'):
-    #            continue
-
-    #        nameservers = parse_resolv(os.path.join(path, f))
-    #        if nameservers:
-    #            return nameservers
-
-    #/etc/resolv.conf
-    nameservers = parse_resolv('/etc/resolv.conf')
-    if nameservers:
-        return nameservers
-
-    return []
-
-def ifup(ifname):
-    return executil.getoutput("ifup %s"% ifname)
-
-def ifdown(ifname):
-    return executil.getoutput("ifdown %s"% ifname)
-
-def unconfigure_if(ifname):
-    try:
-        ifdown(ifname)
-        interfaces = NetworkSettings()
-        interfaces.set_manual(ifname)
-        executil.system("ifconfig %s 0.0.0.0" % ifname)
-        ifup(ifname)
-    except Exception, e:
-        return str(e)
-
-def set_static(ifname, addr, netmask, gateway, nameservers, hostname):
-    try:
-        ifdown(ifname)
-        interfaces = NetworkSettings()
-        interfaces.set_static(ifname, addr, netmask, gateway, nameservers, hostname)
-        output = ifup(ifname)
-
-        net = netinfo.SysInterfaceInfo(ifname)
-        if not net.addr:
-            raise Error('Error obtaining IP address\n\n%s' % output)
-
-    except Exception, e:
-        return str(e)
-
-def set_dhcp(ifname):
-    try:
-        ifdown(ifname)
-        interfaces = NetworkSettings()
-        interfaces.set_dhcp(ifname)
-        output = ifup(ifname)
-
-        net = netinfo.SysInterfaceInfo(ifname)
-        if not net.addr:
-            raise Error('Error obtaining IP address\n\n%s' % output)
-
-    except Exception, e:
-        return str(e)
-
-def get_ipconf(ifname):
-    net = netinfo.SysInterfaceInfo(ifname)
-    return net.address, net.netmask, net.gateway, get_nameservers(ifname)
-
-def get_ifmethod(ifname):
-    interface = NetworkInterface(ifname)
-    return interface.method
-
-def get_ifmacaddr(ifname):
-    interface = NetworkInterface(ifname)
-    return interface.macaddr
-
-def get_shortname(hostname):
-    return hostname.split(".", 1)[0]
-
-def get_filtered_ifnames():
-    '''
-    Return net interface name without useless or pseudo interface
-    '''
-    ifnames = []
-    for ifname in netinfo.NetworkInfo().get_ifnames():
-        is_ok = True
-        for elt in ('lo', 'sit', 'tap', 'br', 'tun', 'vmnet', 'wmaster'):
-            if ifname.startswith(elt):
-                is_ok = False
-        if is_ok == True:
-            ifnames.append(ifname)
-
-    ifnames.sort()
-    return ifnames

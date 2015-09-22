@@ -62,7 +62,7 @@ class Syleps:
         self.conf_files['net_interface'] = '%s/ifcfg-%s' % (ifutil.NetworkSettings.IFCFG_DIR, bootconsole_conf.get_param('default_nic'))
     
     @staticmethod
-    def _getOracleProducts():
+    def _getOracleProducts(self, peer_host):
         try:
             opatch_cmd = Syleps._find_file_in_homedir(self.as_user, 'opatch')
             users = [ self.as_user, self.db_user ]
@@ -78,13 +78,12 @@ class Syleps:
         products = [ executil.getoutput('su - %s -c "%s lsinv" | %s' % (users[0], opatch_cmd, awk_cmd)).split('\n'),
                     executil.getoutput('ssh -o StrictHostKeyChecking=no root@%s "su - %s -c \'opatch lsinv\' | %s' % (peer_host, users[1], awk_cmd).split('\n'))
                    ]
-        
         return products
         
     @staticmethod
     def _is_syleps_compliant(hostname):   
         # make sure that we act on shortname
-        shortname = ifutil.get_shortname(hostname)
+        shortname = NetworkInfo.get_shortname(hostname)
         if re.search(r'^[a-zA-Z0-9]{3,6}(db|as)su[ptrmd]$', shortname) :
             return True
         return False
@@ -94,11 +93,11 @@ class Syleps:
         Determine su ux user password based on hostname
         '''
         if Syleps._is_syleps_compliant(hostname):
-            password = re.sub(r'(db|as)(su)', r'pw\2', ifutil.get_shortname(hostname))
+            password = re.sub(r'(db|as)(su)', r'pw\2', NetworkInfo.get_shortname(hostname))
             return password
         for elt in aliases:
             if Syleps._is_syleps_compliant(elt):
-                elt = ifutil.get_shortname(elt)
+                elt = NetworkInfo.get_shortname(elt)
                 password = re.sub(r'(db|as)(su)', r'pw\2', elt)
                 return password
         raise Exception('Can\'t make password. Check hostname and alias.')
