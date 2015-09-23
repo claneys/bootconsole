@@ -124,11 +124,11 @@ class SylepsConsole:
         self.advanced_enabled = advanced_enabled
 
         self.syleps = Syleps()
+        self.default_nic = self.get_default_nic()
         self._first_run()
         self.component = self.syleps.component
         self.peer_component = self.syleps.peer_component
         self.fs2extend_file = os.path.join(self.var_dir, 'fs2extend')
-        self.default_nic = self.get_default_nic()
 
         # Detect if we have to grow fs
         try:

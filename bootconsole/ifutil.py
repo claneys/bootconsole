@@ -29,7 +29,7 @@ class NetworkSettings:
         self.read_conf()
         # Detect whether or not we can configure network using a tui tool
         try:
-            os.stat(TUI_TOOL)
+            os.stat(NetworkSettings.TUI_TOOL)
         except OSError:
             pass
         
