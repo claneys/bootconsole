@@ -22,47 +22,47 @@ class Syleps:
     and configuration files integrity.
     '''
 
-    def __init__(self, bootconsole_conf=conf.Conf('bootconsole.conf')):
+    def __init__(self, var_dir='', as_user='', db_user=''):
         
-        self.var_dir = bootconsole_conf.get_param('var_dir')
-        self.as_user = bootconsole_conf.get_param('as_user')
-        self.db_user = bootconsole_conf.get_param('db_user')
-        
-        OracleProductsInstalled = Syleps._getOracleProducts()
-        # Only process first product installed as we install one product by machine
-        if 'Database' in OracleProductsInstalled[0]:
-            self.component = 'db'
-            self.peer_component = 'as'
-            self.su_user = bootconsole_conf.get_param('suux_user')
-            self.conf_files = { 'db_tnsnames': Syleps._find_file_in_homedir(self.db_user, 'tnsnames.ora'),
-                                'db_listener' : Syleps._find_file_in_homedir(self.db_user, 'listener.ora'),
-                                'suux_profile' : os.path.expanduser('~'+self.su_user+'/.profile'),
-                                'suux_profile_spec' : os.path.expanduser('~'+self.su_user+'/.profile.spec'),
-                                'suux_profile_ora' : os.path.expanduser('~'+self.su_user+'/.profile.ora'),
-                                'suux_profile_std' : os.path.expanduser('~'+self.su_user+'/.profile.std')
-            }
-        else:
-            self.component = 'as'
-            self.peer_component = 'db'
-            self.su_user = bootconsole_conf.get_param('suas_user')
-            self.conf_files = { 'as_tnsnames' : Syleps._find_file_in_homedir(self.as_user, 'tnsnames.ora'),
-                                'as_formsweb' : Syleps._find_file_in_homedir(self.as_user, 'formsweb.cfg'),
-                                'as_dads' : Syleps._find_file_in_homedir(self.as_user, 'dads.conf', exclude='FRHome'),
-                                'suas_profile' : os.path.expanduser('~'+self.su_user+'/.profile'),
-                                'suas_profile_spec' : os.path.expanduser('~'+self.su_user+'/.profile.spec'),
-                                'suas_profile_ora' : os.path.expanduser('~'+self.su_user+'/.profile.ora'),
-                                'suas_profile_std' : os.path.expanduser('~'+self.su_user+'/.profile.std'),
-            }
+        self.var_dir = var_dir
+        self.as_user = as_user
+        self.db_user = db_user        
         
         # Append system configuration files
-        self.conf_files['ntp'] = '/etc/ntp.conf'
-        self.conf_files['hosts'] = '/etc/hosts'
-        self.conf_files['resolv'] = ifutil.NetworkSettings.RESOLV_FILE
-        self.conf_files['network'] = ifutil.NetworkSettings.NETWORK_FILE
-        self.conf_files['net_interface'] = '%s/ifcfg-%s' % (ifutil.NetworkSettings.IFCFG_DIR, bootconsole_conf.get_param('default_nic'))
+        self.conf_files = { 'ntp': '/etc/ntp.conf',
+                            'hosts' : '/etc/hosts',
+                            'resolv' : ifutil.NetworkSettings.RESOLV_FILE,
+                            'network' : ifutil.NetworkSettings.NETWORK_FILE,
+                            'net_interface' : '%s/ifcfg-%s' % (ifutil.NetworkSettings.IFCFG_DIR, bootconsole_conf.get_param('default_nic')),
+        }
+
+    def __syleps_init__(self, peer_host):
+        OracleProductsInstalled = Syleps._getOracleProducts(peer_host)
+        # Only process first product installed as we install one product by machine
+        if 'Database' in OracleProductsInstalled[0]:
+            self.component = 'DB'
+            self.peer_component = 'AS'
+            self.su_user = bootconsole_conf.get_param('suux_user')
+            self.conf_files['db_tnsnames'] = Syleps._find_file_in_homedir(self.db_user, 'tnsnames.ora')
+            self.conf_files['db_listener'] = Syleps._find_file_in_homedir(self.db_user, 'listener.ora')
+            self.conf_files['suux_profile'] = os.path.expanduser('~'+self.su_user+'/.profile')
+            self.conf_files['suux_profile_spec'] = os.path.expanduser('~'+self.su_user+'/.profile.spec')
+            self.conf_files['suux_profile_ora'] = os.path.expanduser('~'+self.su_user+'/.profile.ora')
+            self.conf_files['suux_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
+        else:
+            self.component = 'AS'
+            self.peer_component = 'DB'
+            self.su_user = bootconsole_conf.get_param('suas_user')
+            self.conf_files['as_tnsnames'] = Syleps._find_file_in_homedir(self.as_user, 'tnsnames.ora')
+            self.conf_files['as_formsweb'] = Syleps._find_file_in_homedir(self.as_user, 'formsweb.cfg')
+            self.conf_files['as_dads'] = Syleps._find_file_in_homedir(self.as_user, 'dads.conf', exclude='FRHome')
+            self.conf_files['suas_profile'] = os.path.expanduser('~'+self.su_user+'/.profile')
+            self.conf_files['suas_profile_spec'] = os.path.expanduser('~'+self.su_user+'/.profile.spec')
+            self.conf_files['suas_profile_ora'] = os.path.expanduser('~'+self.su_user+'/.profile.ora')
+            self.conf_files['suas_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
     
-    @staticmethod
-    def _getOracleProducts(self, peer_host):
+    @classmethod
+    def _getOracleProducts(self, peer_host=None):
         try:
             opatch_cmd = Syleps._find_file_in_homedir(self.as_user, 'opatch')
             users = [ self.as_user, self.db_user ]
@@ -214,16 +214,16 @@ class Syleps:
         Record files checksum about Syleps essentials files that do not have 
         to change over time.
         '''
-        self.csum_file = os.path.join(self.var_dir,'csums')
+        csum_file = os.path.join(self.var_dir,'csums')
         
-        if os.access(self.csum_file, os.F_OK):
-            content = open(self.csum_file, 'r').readlines()
-            bck_file = '.'.join((self.csum_file, datetime.now().strftime('%d%m%y%H%M%S')))
+        if os.access(csum_file, os.F_OK):
+            content = open(csum_file, 'r').readlines()
+            bck_file = '.'.join((csum_file, datetime.now().strftime('%d%m%y%H%M%S')))
             fh = open(bck_file, 'w')
             fh.writelines(content)
             fh.close()
 
-        fh = open(self.csum_file, 'w')
+        fh = open(csum_file, 'w')
         for k, v in self.conf_files.iteritems():
             try:
                 csum = hashlib.sha256(open(v, 'rb').read()).hexdigest()
