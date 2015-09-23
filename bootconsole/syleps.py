@@ -10,9 +10,9 @@ import netinfo
 import ipaddr
 import hashlib
 import ConfigParser
-import conf
+from conf import Conf
 import pwd
-
+from conf import Conf
 class Error(Exception):
     pass
 
@@ -22,18 +22,18 @@ class Syleps:
     and configuration files integrity.
     '''
 
-    def __init__(self, bootconsole_conf=conf.Conf('bootconsole.conf')):
+    def __init__(self, bootconsole_conf=Conf('bootconsole.conf')):
         
         self.var_dir = bootconsole_conf.get_param('var_dir')
         self.as_user = bootconsole_conf.get_param('as_user')
         self.db_user = bootconsole_conf.get_param('db_user')
-        
+
         # Append system configuration files
         self.conf_files = { 'ntp': '/etc/ntp.conf',
                             'hosts' : '/etc/hosts',
                             'resolv' : ifutil.NetworkSettings.RESOLV_FILE,
                             'network' : ifutil.NetworkSettings.NETWORK_FILE,
-                            'net_interface' : '%s/ifcfg-%s' % (ifutil.NetworkSettings.IFCFG_DIR, default_nic),
+                            'net_interface' : '%s/ifcfg-%s' % (ifutil.NetworkSettings.IFCFG_DIR, bootconsole_conf.get_param('default_nic')),
         }
 
     def __syleps_init__(self, peer_host):

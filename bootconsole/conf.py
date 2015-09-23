@@ -7,7 +7,6 @@ import os
 import executil
 import ifutil
 import ipaddr
-from syleps import Syleps
 
 class Error(Exception):
     pass
@@ -95,8 +94,6 @@ class Conf:
                 fh.write(elt + "\n")
             fh.write("# End Syleps\n")
             fh.close()
-            
-            Syleps.record_checksums()
         except:
             return "Something goes wrong when attempting to write file."
 
