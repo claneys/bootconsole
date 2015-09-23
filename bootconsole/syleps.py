@@ -41,7 +41,7 @@ class Syleps:
     def __syleps_init__(self, peer_host):
         OracleProductsInstalled = self._getOracleProducts(peer_host)
         # Only process first product installed as we install one product by machine
-        if 'Database' in OracleProductsInstalled[0]:
+        if 'Database' in OracleProductsInstalled[0][0]:
             self.component = 'DB'
             self.peer_component = 'AS'
             self.su_user = self.suux_user
