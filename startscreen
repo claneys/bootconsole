@@ -151,19 +151,31 @@ class SylepsConsole:
             pass
 
     def _first_run(self):
+        hosts_conf = conf.Conf("hosts")
         first_run_flag = os.path.join(SylepsConsole.var_dir, 'first_run')
         try:
             os.stat(first_run_flag)
+            self.syleps.__syleps_init__(hosts_conf.get_host('PARTNER'))
         except OSError:
             # Ask for the peer node
             first_run = Console(title='First run wizard', width=85, height=25)
             fields = [
+                ("Hostname for the appliance partner node:", '', 30, 30),
                 ("IP address for the appliance partner node:", '', 30, 30),
             ]
             while 1:
                 retcode, input = first_run.form('Appliance Partner Node', 'What are the partner node\'s ip address ?', fields)
-                if IP.is_legal(input[0]):
+                if IP.is_legal(input[1]) and NetworkInfo.is_legal_hostname(input[0]):
                     self.syleps.__syleps_init__(input[0])
+
+                    host = { 'hostname':self.NetworkInfo.hostname,
+                            'ip': SysInterfaceInfo(self.default_nic).address
+                    }
+                    peer_host = { 'hostname' : input[0],
+                                'ip': input[1],
+                    }
+                    hosts_conf.set_hosts(host['ip'], host['hostname'], '', peer_host['hostname'], '', peer_host['ip'])
+
                     fh = open(first_run_flag, 'w')
                     fh.close()
                     break

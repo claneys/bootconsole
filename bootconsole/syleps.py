@@ -40,6 +40,8 @@ class Syleps:
 
     def __syleps_init__(self, peer_host):
         OracleProductsInstalled = self._getOracleProducts(peer_host)
+        self.version = OracleProductsInstalled[0][0]
+        self.peer_version = OracleProductsInstalled[1][0]
         # Only process first product installed as we install one product by machine
         if 'Database' in OracleProductsInstalled[0][0]:
             self.component = 'DB'
@@ -53,6 +55,7 @@ class Syleps:
             self.conf_files['suux_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
         else:
             self.component = 'AS'
+            self.version = OracleProductsInstalled[0][0]
             self.peer_component = 'DB'
             self.su_user = self.suas_user
             self.conf_files['as_tnsnames'] = Syleps._find_file_in_homedir(self.as_user, 'tnsnames.ora')
@@ -62,7 +65,7 @@ class Syleps:
             self.conf_files['suas_profile_spec'] = os.path.expanduser('~'+self.su_user+'/.profile.spec')
             self.conf_files['suas_profile_ora'] = os.path.expanduser('~'+self.su_user+'/.profile.ora')
             self.conf_files['suas_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
-    
+                
     def _getOracleProducts(self, peer_host=None):
         try:
             opatch_cmd = Syleps._find_file_in_homedir(self.as_user, 'opatch')

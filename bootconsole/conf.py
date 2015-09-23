@@ -31,6 +31,15 @@ class Conf:
         self.conf_file = path(conf_file)
         self._load_conf()
 
+    @staticmethod
+    def is_conf_already_configured(conf_file):
+        fh = open (conf_file, 'r')
+        for line in fh:
+            if "# Syleps configuration" in line or "# SYLEPS CONFCONSOLE" in line:
+                return True
+                
+        return False
+
     def _load_conf(self):
         if not os.path.exists(self.conf_file):
             return
@@ -160,22 +169,30 @@ class Conf:
         fh.write("# Syleps configuration\n")
         fh.write("# Don't modify this part !\n")
         fh.write("# @IP\tFQDN\tShortname\tOptionals aliases\tMandatory component specification\n")
-        fh.write(ip + "\t" + hostname + "\t" + shortname + '\t'.join(aliases) +"\n")
-        fh.write(peer_ip + "\t" + peer_hostname + "\t" + peer_shortname + '\t'.join(peer_aliases)+"\n")
+        fh.write(ip + "\t" + hostname + "\t" + shortname + '\t'.join(aliases) +"# LOCAL\n")
+        fh.write(peer_ip + "\t" + peer_hostname + "\t" + peer_shortname + '\t'.join(peer_aliases)+"# PARTNER\n")
         fh.write("# End Syleps hosts\n")
         fh.close()
 
     def get_host(self, host):
-
-        for elt in self.param:
-            if host in elt:
+        for line in self.param:
+            if host in line:
+                if '#' in line:
+                    elt, comment = line.split('#')
+                    elt = elt.strip()
+                    comment = comment.strip()
+                else:
+                    elt = line.strip()
+                    comment = ''
                 v = elt.split()[1:]
                 aliases = v[2:-1]
                 return { 'hostname': v[0],
                         'ip' : elt.split()[0],
                         'aliases': ','.join(aliases),
+                        'comment' : comment,
                 }
         return { 'hostname': '',
                  'ip': '',
-                 'aliases': ''
+                 'aliases': '',
+                 'comment': '',
                 }
