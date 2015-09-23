@@ -10,7 +10,7 @@ import netinfo
 import ipaddr
 import hashlib
 import ConfigParser
-import bootconsole.conf as conf
+import conf
 import pwd
 
 class Error(Exception):
@@ -22,7 +22,7 @@ class Syleps:
     and configuration files integrity.
     '''
 
-    def __init__(self, var_dir='', as_user='', db_user=''):
+    def __init__(self, var_dir='', as_user='', db_user='', default_nic=''):
         
         self.var_dir = var_dir
         self.as_user = as_user
@@ -33,7 +33,7 @@ class Syleps:
                             'hosts' : '/etc/hosts',
                             'resolv' : ifutil.NetworkSettings.RESOLV_FILE,
                             'network' : ifutil.NetworkSettings.NETWORK_FILE,
-                            'net_interface' : '%s/ifcfg-%s' % (ifutil.NetworkSettings.IFCFG_DIR, bootconsole_conf.get_param('default_nic')),
+                            'net_interface' : '%s/ifcfg-%s' % (ifutil.NetworkSettings.IFCFG_DIR, default_nic),
         }
 
     def __syleps_init__(self, peer_host):

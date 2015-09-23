@@ -112,7 +112,7 @@ class SylepsConsole:
     config = conf.Conf("bootconsole.conf")
     block_devices = block.BlockDevices()
     var_dir = config.get_param('var_dir')
-    syleps = Syleps(SylepsConsole.var_dir, config.get_param('as_user'), config.get_param('db_user'))
+    syleps = Syleps(var_dir, config.get_param('as_user'), config.get_param('db_user'), config.get_param('default_nic'))
     ifnames = NetworkInfo.get_filtered_ifnames()
     
     def __init__(self, advanced_enabled=True):
