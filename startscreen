@@ -155,7 +155,7 @@ class SylepsConsole:
         first_run_flag = os.path.join(SylepsConsole.var_dir, 'first_run')
         try:
             os.stat(first_run_flag)
-            self.syleps.__syleps_init__(hosts_conf.get_host('PARTNER'))
+            self.syleps.__syleps_init__(hosts_conf.get_host('PARTNER')['ip'])
         except OSError:
             # Ask for the peer node
             first_run = Console(title='First run wizard', width=85, height=25)

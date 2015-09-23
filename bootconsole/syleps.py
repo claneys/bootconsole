@@ -40,8 +40,9 @@ class Syleps:
 
     def __syleps_init__(self, peer_host):
         OracleProductsInstalled = self._getOracleProducts(peer_host)
-        self.version = OracleProductsInstalled[0][0]
-        self.peer_version = OracleProductsInstalled[1][0]
+        self.version = re.sub(r'\s+', ' ',OracleProductsInstalled[0][0])
+        self.peer_version = re.sub(r'\s+', ' ', OracleProductsInstalled[1][0])
+
         # Only process first product installed as we install one product by machine
         if 'Database' in OracleProductsInstalled[0][0]:
             self.component = 'DB'
