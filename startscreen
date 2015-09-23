@@ -112,7 +112,6 @@ class SylepsConsole:
     config = conf.Conf("bootconsole.conf")
     block_devices = block.BlockDevices()
     var_dir = config.get_param('var_dir')
-    syleps = Syleps(var_dir, config.get_param('as_user'), config.get_param('db_user'), config.get_param('default_nic'))
     ifnames = NetworkInfo.get_filtered_ifnames()
     
     def __init__(self, advanced_enabled=True):
@@ -124,10 +123,11 @@ class SylepsConsole:
         self.appname = "Syleps Linux"
         self.advanced_enabled = advanced_enabled
 
+        self.syleps = Syleps()
         self._first_run()
-        self.component = SylepsConsole.syleps.component
-        self.peer_component = SylepsConsole.syleps.peer_component
-        self.fs2extend_file = os.path.join(SylepsConsole.var_dir, 'fs2extend')
+        self.component = self.syleps.component
+        self.peer_component = self.syleps.peer_component
+        self.fs2extend_file = os.path.join(self.var_dir, 'fs2extend')
         self.default_nic = self.get_default_nic()
 
         # Detect if we have to grow fs
@@ -158,12 +158,12 @@ class SylepsConsole:
             # Ask for the peer node
             first_run = Console(title='First run wizard', width=85, height=25)
             fields = [
-                ("Hostname for the appliance partner node:", '', 30, 30),
+                ("IP address for the appliance partner node:", '', 30, 30),
             ]
             while 1:
                 retcode, input = first_run.form('Appliance Partner Node', 'What are the partner node\'s ip address ?', fields)
                 if IP.is_legal(input[0]):
-                    SylepsConsole.syleps.__syleps_init__(input[0])
+                    self.syleps.__syleps_init__(input[0])
                     fh = open(first_run_flag, w)
                     fh.close()
                     break

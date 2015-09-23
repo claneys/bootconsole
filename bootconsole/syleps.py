@@ -22,11 +22,11 @@ class Syleps:
     and configuration files integrity.
     '''
 
-    def __init__(self, var_dir='', as_user='', db_user='', default_nic=''):
+    def __init__(self, bootconsole_conf=conf.Conf('bootconsole.conf')):
         
-        self.var_dir = var_dir
-        self.as_user = as_user
-        self.db_user = db_user        
+        self.var_dir = bootconsole_conf.get_param('var_dir')
+        self.as_user = bootconsole_conf.get_param('as_user')
+        self.db_user = bootconsole_conf.get_param('db_user')
         
         # Append system configuration files
         self.conf_files = { 'ntp': '/etc/ntp.conf',
@@ -37,7 +37,7 @@ class Syleps:
         }
 
     def __syleps_init__(self, peer_host):
-        OracleProductsInstalled = Syleps._getOracleProducts(peer_host)
+        OracleProductsInstalled = self._getOracleProducts(peer_host)
         # Only process first product installed as we install one product by machine
         if 'Database' in OracleProductsInstalled[0]:
             self.component = 'DB'
@@ -61,7 +61,6 @@ class Syleps:
             self.conf_files['suas_profile_ora'] = os.path.expanduser('~'+self.su_user+'/.profile.ora')
             self.conf_files['suas_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
     
-    @classmethod
     def _getOracleProducts(self, peer_host=None):
         try:
             opatch_cmd = Syleps._find_file_in_homedir(self.as_user, 'opatch')
@@ -76,7 +75,7 @@ class Syleps:
         awk_cmd = 'awk \'/%s/{f=1;next} /%s/ {f=0} f && ! /^$/ && ! /Example/ {print}\'' % (begin_pattern, end_pattern)
         
         products = [ executil.getoutput('su - %s -c "%s lsinv" | %s' % (users[0], opatch_cmd, awk_cmd)).split('\n'),
-                    executil.getoutput('ssh -o StrictHostKeyChecking=no root@%s "su - %s -c \'opatch lsinv\' | %s' % (peer_host, users[1], awk_cmd).split('\n'))
+                    executil.getoutput('ssh -o StrictHostKeyChecking=no root@%s "su - %s -c \'opatch lsinv\' | %s"' % (peer_host, users[1], awk_cmd)).split('\n')
                    ]
         return products
         
@@ -87,20 +86,6 @@ class Syleps:
         if re.search(r'^[a-zA-Z0-9]{3,6}(db|as)su[ptrmd]$', shortname) :
             return True
         return False
-    
-    def _make_password(self, hostname, aliases):
-        '''
-        Determine su ux user password based on hostname
-        '''
-        if Syleps._is_syleps_compliant(hostname):
-            password = re.sub(r'(db|as)(su)', r'pw\2', NetworkInfo.get_shortname(hostname))
-            return password
-        for elt in aliases:
-            if Syleps._is_syleps_compliant(elt):
-                elt = NetworkInfo.get_shortname(elt)
-                password = re.sub(r'(db|as)(su)', r'pw\2', elt)
-                return password
-        raise Exception('Can\'t make password. Check hostname and alias.')
     
     @staticmethod
     def _find_file_in_homedir(user, file2find, exclude=None):
@@ -122,6 +107,20 @@ class Syleps:
                 
         raise(Exception("File not found, or wrong user selected!"))
 
+    def _make_password(self, hostname, aliases):
+        '''
+        Determine su ux user password based on hostname
+        '''
+        if Syleps._is_syleps_compliant(hostname):
+            password = re.sub(r'(db|as)(su)', r'pw\2', NetworkInfo.get_shortname(hostname))
+            return password
+        for elt in aliases:
+            if Syleps._is_syleps_compliant(elt):
+                elt = NetworkInfo.get_shortname(elt)
+                password = re.sub(r'(db|as)(su)', r'pw\2', elt)
+                return password
+        raise Exception('Can\'t make password. Check hostname and alias.')
+    
     def _change_dads(self, conf, password):
         '''
         Change su ux password in dads.conf file
