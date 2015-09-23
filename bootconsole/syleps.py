@@ -27,7 +27,9 @@ class Syleps:
         self.var_dir = bootconsole_conf.get_param('var_dir')
         self.as_user = bootconsole_conf.get_param('as_user')
         self.db_user = bootconsole_conf.get_param('db_user')
-
+        self.suux_user = bootconsole_conf.get_param('suux_user')
+        self.suas_user = bootconsole_conf.get_param('suas_user')
+        
         # Append system configuration files
         self.conf_files = { 'ntp': '/etc/ntp.conf',
                             'hosts' : '/etc/hosts',
@@ -42,7 +44,7 @@ class Syleps:
         if 'Database' in OracleProductsInstalled[0]:
             self.component = 'DB'
             self.peer_component = 'AS'
-            self.su_user = bootconsole_conf.get_param('suux_user')
+            self.su_user = self.suux_user
             self.conf_files['db_tnsnames'] = Syleps._find_file_in_homedir(self.db_user, 'tnsnames.ora')
             self.conf_files['db_listener'] = Syleps._find_file_in_homedir(self.db_user, 'listener.ora')
             self.conf_files['suux_profile'] = os.path.expanduser('~'+self.su_user+'/.profile')
@@ -52,7 +54,7 @@ class Syleps:
         else:
             self.component = 'AS'
             self.peer_component = 'DB'
-            self.su_user = bootconsole_conf.get_param('suas_user')
+            self.su_user = self.suas_user
             self.conf_files['as_tnsnames'] = Syleps._find_file_in_homedir(self.as_user, 'tnsnames.ora')
             self.conf_files['as_formsweb'] = Syleps._find_file_in_homedir(self.as_user, 'formsweb.cfg')
             self.conf_files['as_dads'] = Syleps._find_file_in_homedir(self.as_user, 'dads.conf', exclude='FRHome')
