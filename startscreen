@@ -164,7 +164,7 @@ class SylepsConsole:
                 retcode, input = first_run.form('Appliance Partner Node', 'What are the partner node\'s ip address ?', fields)
                 if IP.is_legal(input[0]):
                     self.syleps.__syleps_init__(input[0])
-                    fh = open(first_run_flag, w)
+                    fh = open(first_run_flag, 'w')
                     fh.close()
                     break
                 else:
