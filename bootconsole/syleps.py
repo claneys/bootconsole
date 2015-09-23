@@ -55,7 +55,6 @@ class Syleps:
             self.conf_files['suux_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
         else:
             self.component = 'AS'
-            self.version = OracleProductsInstalled[0][0]
             self.peer_component = 'DB'
             self.su_user = self.suas_user
             self.conf_files['as_tnsnames'] = Syleps._find_file_in_homedir(self.as_user, 'tnsnames.ora')

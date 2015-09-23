@@ -784,7 +784,7 @@ class SylepsConsole:
 
         #backwards compatible - use usage.txt if it exists
         t = file(conf.path("usage.txt"), 'r').read()
-        text = Template(t).substitute(serial=self._get_serial(), hostname=hostname, ipaddr=ipaddr)
+        text = Template(t).substitute(serial=self._get_serial(), hostname=hostname, ipaddr=ipaddr, local_version=self.syleps.version, peer_version=self.syleps.peer_version)
 
         text += "\n" * (self.height - len(text.splitlines()) - 7)
         text += "\Z3                            Syleps SU Appliance\n"
