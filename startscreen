@@ -568,7 +568,7 @@ class SylepsConsole:
             # Peer hosts are application server or database host composing
             # the appliance.
             hosts_conf = conf.Conf('hosts')
-            ntp_conf.set_param('peer', self.peer_alias)
+            ntp_conf.set_param('peer', self.peer_component)
             err = ntp_conf.write_conf()
             self._check_error(err)
             executil.system('/sbin/service ntpd restart > /dev/null 2>&1')
@@ -582,14 +582,14 @@ class SylepsConsole:
         Configure /etc/hosts file and make sure that we have alias from both
         servers configured
         '''
-        def _validate(hostname, alias, peer_hostname, peer_alias, peer_ip):
+        def _validate(hostname, alias, peer_hostname, peer_component, peer_ip):
             errors = []
             if not peer_ip:
                 errors.append("IP address missing")
             elif not IP.is_legal(peer_ip):
                 errors.append("Invalid IP address")
 
-            for elt in [hostname, alias, peer_hostname, peer_alias]:
+            for elt in [hostname, alias, peer_hostname, peer_component]:
                 if type(elt) == list:
                     for subelt in elt:
                         if not self.NetworkInfo.is_legal_hostname(subelt):
@@ -621,14 +621,14 @@ class SylepsConsole:
         field_width = 50
         field_limit = 50
         
-        label_mapping = {'oradb11g': 'DB', 'oradb12c': 'DB', 'ofm11g': 'AS'}
+        label_mapping = {'oradb11g': 'DB', 'oradb12c': 'DB', 'ofm11g': 'AS', 'AS': 'AS', 'DB': 'DB'}
 
         while 1:
             fields.append(("Hostname", input[0], field_width, field_limit))
             fields.append(("Additional(s) alias", input[1], field_width, field_limit))
-            fields.append((label_mapping[self.peer_alias] + " hostname", input[2], field_width, field_limit))
-            fields.append((label_mapping[self.peer_alias] + " additional(s) aliases", input[3], field_width, field_limit))
-            fields.append((label_mapping[self.peer_alias] + " IP address", input[4], field_width, field_limit))
+            fields.append((label_mapping[self.peer_component] + " hostname", input[2], field_width, field_limit))
+            fields.append((label_mapping[self.peer_component] + " additional(s) aliases", input[3], field_width, field_limit))
+            fields.append((label_mapping[self.peer_component] + " IP address", input[4], field_width, field_limit))
             
             text = "Set /etc/hosts entries. Hostname can be shortname or fqdn.\nSpecify comma separated alias. There are optionnal and let you add hostname to be resolved."
             retcode, input = self.console.form("Hosts settings", text, fields)
