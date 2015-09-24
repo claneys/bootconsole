@@ -83,38 +83,31 @@ class NetworkInfo:
         ifnames.sort()
         return ifnames
 
+    @staticmethod
+    def parse_resolv(path):
+        nameservers = []
+        search_domain = ''
+        for line in file(path).readlines():
+            if line.startswith('nameserver'):
+                nameservers.append(line.strip().split()[1])
+            if line.startswith('search'):
+                search_domain = line.strip().split()[1]
+        return nameservers, search_domain
+
+    def get_domain(self):
+        nameservers, search_domain = self.parse_resolv('/etc/resolv.conf')
+        if search_domain:
+            return search_domain
+            
+        return ''
+        
     def get_nameservers(self):
-        #/etc/network/interfaces (static)
-        #interface = NetworkInterface(ifname)
-        #if interface.dns_nameservers:
-        #    return interface.dns_nameservers
-    
-        def parse_resolv(path):
-            nameservers = []
-            for line in file(path).readlines():
-                if line.startswith('nameserver'):
-                    nameservers.append(line.strip().split()[1])
-            return nameservers
-
-        #Debian relative
-        #resolvconf (dhcp)
-        #path = '/etc/resolvconf/run/interface'
-        #if os.path.exists(path):
-        #    for f in os.listdir(path):
-        #        if not f.startswith(ifname) or f.endswith('.inet'):
-        #            continue
-    
-        #        nameservers = parse_resolv(os.path.join(path, f))
-        #        if nameservers:
-        #            return nameservers
-
-        #/etc/resolv.conf
-        nameservers = parse_resolv('/etc/resolv.conf')
+        nameservers, search_domain = self.parse_resolv('/etc/resolv.conf')
         if nameservers:
             return nameservers
-
+            
         return []
-
+        
     @property
     def hostname(self):
         return socket.gethostname()
@@ -171,7 +164,7 @@ class SysInterfaceInfo(object):
         return (flags & magic) != 0
 
     def get_ipconf(self):
-        return self.address, self.netmask, self.gateway, NetworkInfo().get_nameservers()
+        return self.address, self.netmask, self.gateway, NetworkInfo().get_nameservers(), NetworkInfo().get_domain()
 
     @property
     def address(self):

@@ -247,7 +247,7 @@ class SylepsConsole:
         # if only 1 interface, dont display menu - just configure it
         if len(self.ifnames) == 1:
             self.ifname = self.ifnames[0]
-            self.default_ip, self.default_netmask, self.default_gateway, self.default_nameservers = SysInterfaceInfo(self.ifname).get_ipconf()
+            self.default_ip, self.default_netmask, self.default_gateway, self.default_nameservers, self.search_domain = SysInterfaceInfo(self.ifname).get_ipconf()
             return "ifconf"
 
         # display networking
@@ -261,7 +261,7 @@ class SylepsConsole:
         if retcode is not self.OK:
             return "advanced"
 
-        self.ip, self.netmask, self.gateway, self.nameservers = SysInterfaceInfo(self.ifname).get_ipconf()
+        self.ip, self.netmask, self.gateway, self.nameservers, self.search_domain = SysInterfaceInfo(self.ifname).get_ipconf()
         return "ifconf"
 
     def _get_netmenu(self):
@@ -297,7 +297,7 @@ class SylepsConsole:
         return menu
 
     def _get_ifconftext(self, ifname):
-        self.ip, self.netmask, self.gateway, self.nameservers = SysInterfaceInfo(ifname).get_ipconf()
+        self.ip, self.netmask, self.gateway, self.nameservers, self.search_domain = SysInterfaceInfo(ifname).get_ipconf()
 
         if self.ip is None:
             return "Network adapter is not configured\n"
@@ -387,7 +387,7 @@ class SylepsConsole:
 
         input = [self.ip, self.netmask, self.gateway]
         input.extend(self.nameservers)
-
+        input.append(self.search_domain)
         # include minimum 2 nameserver fields and 1 blank one
         if len(input) < 4:
             input.append('')
@@ -424,7 +424,7 @@ class SylepsConsole:
                 break
 
             new_ip, new_netmask, new_gateway = input[:3]
-            new_nameservers = input[3:4]
+            new_nameservers = input[3:5]
             for i in range(new_nameservers.count('')):
                 new_nameservers.remove('')
 
