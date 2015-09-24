@@ -9,6 +9,7 @@ import bootconsole.ifutil as ifutil
 import netinfo
 import ipaddr
 import hashlib
+from netinfo import NetworkInfo
 import ConfigParser
 from conf import Conf
 import pwd

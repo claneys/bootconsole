@@ -174,7 +174,7 @@ class SylepsConsole:
                     peer_host = { 'hostname' : input[0],
                                 'ip': input[1],
                     }
-                    hosts_conf.set_hosts(host['ip'], host['hostname'], '', peer_host['hostname'], '', peer_host['ip'])
+                    hosts_conf.set_hosts(host['ip'], host['hostname'], [self.syleps.component], peer_host['hostname'], [self.syleps.peer_component], peer_host['ip'])
 
                     fh = open(first_run_flag, 'w')
                     fh.close()
