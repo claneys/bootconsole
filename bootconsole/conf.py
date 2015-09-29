@@ -108,24 +108,6 @@ class Conf:
         except:
             return "Something goes wrong when attempting to write file."
 
-    def set_default_nic(self, ifname):
-        self.param['default_nic'] = ifname
-
-        fh = open(self.conf_file, 'r')
-        content = fh.readlines()
-        fh.close
-
-        if not "default_nic" in content:
-            content.insert(1, 'default_nic')
-
-        fh = open(self.conf_file, 'w')
-        for line in content:
-            if line.startswith('default_nic'):
-                fh.write("default_nic %s\n" % ifname)
-                continue
-            fh.write(line)
-        fh.close()
-
     def set_hosts(self, ip, hostname, aliases, peer_hostname, peer_aliases, peer_ip):
         # Set domain name if not provided
         if not '.' in hostname:

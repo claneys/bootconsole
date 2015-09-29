@@ -178,8 +178,8 @@ class SylepsConsole:
                     hosts_conf.set_hosts(host['ip'], host['hostname'], [self.syleps.component], peer_host['hostname'], [self.syleps.peer_component], peer_host['ip'])
                     SylepsConsole.config.set_param('component', self.syleps.component)
                     SylepsConsole.config.set_param('peer_component', self.syleps.peer_component)
-                    for label, conf_file in self.syleps.conf_files:
-                        SylepsConsole.config.set_param(label, conf_file)
+                    for label, conf_file in self.syleps.conf_files.iteritems():
+                        SylepsConsole.config.change_param(label, conf_file)
                         
                     SylepsConsole.config.write_conf()                    
 
@@ -187,7 +187,7 @@ class SylepsConsole:
                     fh.close()
                     break
                 else:
-                    first_run.msgbox('Error', 'Invalid IP address')
+                    first_run.msgbox('Error', 'Invalid IP address or hostname')
 
     def _get_serial(self):
         if self.component != 'AS' and self.component != 'DB':

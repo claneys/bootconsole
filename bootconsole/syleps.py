@@ -24,7 +24,7 @@ class Syleps:
     '''
 
     def __init__(self, bootconsole_conf=Conf('bootconsole.conf')):
-        
+        self.bootconsole_conf = bootconsole_conf
         self.var_dir = bootconsole_conf.get_param('var_dir')
         self.as_user = bootconsole_conf.get_param('as_user')
         self.db_user = bootconsole_conf.get_param('db_user')
@@ -66,7 +66,13 @@ class Syleps:
             self.conf_files['suas_profile_spec'] = os.path.expanduser('~'+self.su_user+'/.profile.spec')
             self.conf_files['suas_profile_ora'] = os.path.expanduser('~'+self.su_user+'/.profile.ora')
             self.conf_files['suas_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
-                
+            
+        # Rewrite bootconsole configuration
+        self.bootconsole_conf.change_param('component', self.component)
+        self.bootconsole_conf.change_param('peer_component', self.peer_component)
+        for label, conf_file in self.conf_files.iteritems():
+            self.bootconsol_conf.change_param(label, conf_files)
+            
     def _getOracleProducts(self, peer_host=None):
         try:
             opatch_cmd = Syleps._find_file_in_homedir(self.as_user, 'opatch')
