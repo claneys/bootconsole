@@ -512,8 +512,10 @@ class SylepsConsole:
 
         try:
             ntp_conf = conf.Conf('ntp.conf')
+            daemon = 'ntpd'
         except:
             ntp_conf = conf.Conf('chrony.conf')
+            daemon = 'chronyd'
 
         # Make sure we have a list as server parameter
         server = ntp_conf.get_param('server')
@@ -571,7 +573,7 @@ class SylepsConsole:
             ntp_conf.set_param('peer', self.peer_component)
             err = ntp_conf.write_conf()
             self._check_error(err)
-            executil.system('/sbin/service ntpd restart > /dev/null 2>&1')
+            executil.system('/sbin/service %s restart > /dev/null 2>&1' % daemon)
 
             break
 
