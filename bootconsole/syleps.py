@@ -49,35 +49,35 @@ class Syleps:
             self.component = 'DB'
             self.peer_component = 'AS'
             self.su_user = self.suux_user
-            if self.bootconsole_conf.get_param('db_tnsmames') == []:
+            if self.define_conf_file('db_tnsmames'):
                 self.conf_files['db_tnsnames'] = Syleps._find_file_in_homedir(self.db_user, 'tnsnames.ora')
-            if self.bootconsole_conf.get_param('db_listener') == []:
+            if self.define_conf_file('db_listener'):
                 self.conf_files['db_listener'] = Syleps._find_file_in_homedir(self.db_user, 'listener.ora')
-            if self.bootconsole_conf.get_param('suux_profile') == []:
+            if self.define_conf_file('suux_profile'):
                 self.conf_files['suux_profile'] = os.path.expanduser('~'+self.su_user+'/.profile')
-            if self.bootconsole_conf.get_param('suux_profile_spec') == []:
+            if self.define_conf_file('suux_profile_spec'):
                 self.conf_files['suux_profile_spec'] = os.path.expanduser('~'+self.su_user+'/.profile.spec')
-            if self.bootconsole_conf.get_param('suux_profile_ora') == []:
+            if self.define_conf_file('suux_profile_ora'):
                 self.conf_files['suux_profile_ora'] = os.path.expanduser('~'+self.su_user+'/.profile.ora')
-            if self.bootconsole_conf.get_param('suux_profile_std') == []:
+            if self.define_conf_file('suux_profile_std'):
                 self.conf_files['suux_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
         else:
             self.component = 'AS'
             self.peer_component = 'DB'
             self.su_user = self.suas_user
-            if self.bootconsole_conf.get_param('as_tnsnames') == []:
+            if self.define_conf_file('as_tnsnames'):
                 self.conf_files['as_tnsnames'] = Syleps._find_file_in_homedir(self.as_user, 'tnsnames.ora')
-            if self.bootconsole_conf.get_param('as_formsweb') == []:
+            if self.define_conf_file('as_formsweb'):
                 self.conf_files['as_formsweb'] = Syleps._find_file_in_homedir(self.as_user, 'formsweb.cfg')
-            if self.bootconsole_conf.get_param('as_dads') == []:
+            if self.define_conf_file('as_dads'):
                 self.conf_files['as_dads'] = Syleps._find_file_in_homedir(self.as_user, 'dads.conf', exclude='FRHome')
-            if self.bootconsole_conf.get_param('suas_profile') == []:
+            if self.define_conf_file('suas_profile'):
                 self.conf_files['suas_profile'] = os.path.expanduser('~'+self.su_user+'/.profile')
-            if self.bootconsole_conf.get_param('suas_profile_spec') == []:
+            if self.define_conf_file('suas_profile_spec'):
                 self.conf_files['suas_profile_spec'] = os.path.expanduser('~'+self.su_user+'/.profile.spec')
-            if self.bootconsole_conf.get_param('suas_profile_ora') == []:
+            if self.define_conf_file('suas_profile_ora'):
                 self.conf_files['suas_profile_ora'] = os.path.expanduser('~'+self.su_user+'/.profile.ora')
-            if self.bootconsole_conf.get_param('suas_profile_std') == []:
+            if self.define_conf_file('suas_profile_std'):
                 self.conf_files['suas_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
             
         # Rewrite bootconsole configuration
@@ -87,6 +87,17 @@ class Syleps:
             self.bootconsole_conf.change_param(label, conf_file)
         
         self.bootconsole_conf.write_conf()
+            
+    def define_conf_file(self, conf_file):
+        '''
+        Return true when file has to be defined and
+        False if it is already defined
+        '''
+        if self.bootconsole_conf.get_param(conf_file) == []:
+            return True
+        else:
+            self.conf_files[conf_file] = self.bootconsole_conf.get_param(conf_file)
+            return False
             
     def _getOracleProducts(self, peer_host=None):
         try:
@@ -206,8 +217,6 @@ class Syleps:
             if self.conf_files['as_dads'] != None:
                 dads_conf = conf.Conf(self.conf_files['as_dads'])
                 err.append(self._change_dads(dads_conf, password))
-
-
 
             # Dirty workaroud to Empty err element
             err = filter(None, err)       
