@@ -74,9 +74,7 @@ class Conf:
 
         if len(ret) == 1:
             ret = ret[0]
-        elif ret == []:
-            return('Could not find parameter %s in %s file' % (key, self.conf_file))
-        
+            
         return ret
 
     # Set a parameter at a given position or a the end by default.
