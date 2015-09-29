@@ -71,7 +71,7 @@ class Syleps:
         self.bootconsole_conf.change_param('component', self.component)
         self.bootconsole_conf.change_param('peer_component', self.peer_component)
         for label, conf_file in self.conf_files.iteritems():
-            self.bootconsol_conf.change_param(label, conf_files)
+            self.bootconsole_conf.change_param(label, conf_files)
             
     def _getOracleProducts(self, peer_host=None):
         try:
