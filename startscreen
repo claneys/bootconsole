@@ -174,7 +174,14 @@ class SylepsConsole:
                     peer_host = { 'hostname' : input[0],
                                 'ip': input[1],
                     }
+                    # Write found parameters
                     hosts_conf.set_hosts(host['ip'], host['hostname'], [self.syleps.component], peer_host['hostname'], [self.syleps.peer_component], peer_host['ip'])
+                    SylepsConsole.config.set_param('component', self.syleps.component)
+                    SylepsConsole.config.set_param('peer_component', self.syleps.peer_component)
+                    for label, conf_file in self.syleps.conf_files:
+                        SylepsConsole.config.set_param(label, conf_file)
+                        
+                    SylepsConsole.config.write_conf()                    
 
                     fh = open(first_run_flag, 'w')
                     fh.close()

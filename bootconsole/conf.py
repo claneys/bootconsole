@@ -92,6 +92,10 @@ class Conf:
             except TypeError:
                 self.param.insert(index, key + ' ' + val)
 
+    def change_param(self, key, val):
+        self.del_param(key)
+        self.set_param(key, val)
+
     def write_conf(self):
         try:
             fh = open(self.conf_file, 'w')
