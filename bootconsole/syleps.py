@@ -49,29 +49,44 @@ class Syleps:
             self.component = 'DB'
             self.peer_component = 'AS'
             self.su_user = self.suux_user
-            self.conf_files['db_tnsnames'] = Syleps._find_file_in_homedir(self.db_user, 'tnsnames.ora')
-            self.conf_files['db_listener'] = Syleps._find_file_in_homedir(self.db_user, 'listener.ora')
-            self.conf_files['suux_profile'] = os.path.expanduser('~'+self.su_user+'/.profile')
-            self.conf_files['suux_profile_spec'] = os.path.expanduser('~'+self.su_user+'/.profile.spec')
-            self.conf_files['suux_profile_ora'] = os.path.expanduser('~'+self.su_user+'/.profile.ora')
-            self.conf_files['suux_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
+            if self.bootconsole_conf.get_param('db_tnsmames') == []:
+                self.conf_files['db_tnsnames'] = Syleps._find_file_in_homedir(self.db_user, 'tnsnames.ora')
+            if self.bootconsole_conf.get_param('db_listener') == []:
+                self.conf_files['db_listener'] = Syleps._find_file_in_homedir(self.db_user, 'listener.ora')
+            if self.bootconsole_conf.get_param('suux_profile') == []:
+                self.conf_files['suux_profile'] = os.path.expanduser('~'+self.su_user+'/.profile')
+            if self.bootconsole_conf.get_param('suux_profile_spec') == []:
+                self.conf_files['suux_profile_spec'] = os.path.expanduser('~'+self.su_user+'/.profile.spec')
+            if self.bootconsole_conf.get_param('suux_profile_ora') == []:
+                self.conf_files['suux_profile_ora'] = os.path.expanduser('~'+self.su_user+'/.profile.ora')
+            if self.bootconsole_conf.get_param('suux_profile_std') == []:
+                self.conf_files['suux_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
         else:
             self.component = 'AS'
             self.peer_component = 'DB'
             self.su_user = self.suas_user
-            self.conf_files['as_tnsnames'] = Syleps._find_file_in_homedir(self.as_user, 'tnsnames.ora')
-            self.conf_files['as_formsweb'] = Syleps._find_file_in_homedir(self.as_user, 'formsweb.cfg')
-            self.conf_files['as_dads'] = Syleps._find_file_in_homedir(self.as_user, 'dads.conf', exclude='FRHome')
-            self.conf_files['suas_profile'] = os.path.expanduser('~'+self.su_user+'/.profile')
-            self.conf_files['suas_profile_spec'] = os.path.expanduser('~'+self.su_user+'/.profile.spec')
-            self.conf_files['suas_profile_ora'] = os.path.expanduser('~'+self.su_user+'/.profile.ora')
-            self.conf_files['suas_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
+            if self.bootconsole_conf.get_param('as_tnsnames') == []:
+                self.conf_files['as_tnsnames'] = Syleps._find_file_in_homedir(self.as_user, 'tnsnames.ora')
+            if self.bootconsole_conf.get_param('as_formsweb') == []:
+                self.conf_files['as_formsweb'] = Syleps._find_file_in_homedir(self.as_user, 'formsweb.cfg')
+            if self.bootconsole_conf.get_param('as_dads') == []:
+                self.conf_files['as_dads'] = Syleps._find_file_in_homedir(self.as_user, 'dads.conf', exclude='FRHome')
+            if self.bootconsole_conf.get_param('suas_profile') == []:
+                self.conf_files['suas_profile'] = os.path.expanduser('~'+self.su_user+'/.profile')
+            if self.bootconsole_conf.get_param('suas_profile_spec') == []:
+                self.conf_files['suas_profile_spec'] = os.path.expanduser('~'+self.su_user+'/.profile.spec')
+            if self.bootconsole_conf.get_param('suas_profile_ora') == []:
+                self.conf_files['suas_profile_ora'] = os.path.expanduser('~'+self.su_user+'/.profile.ora')
+            if self.bootconsole_conf.get_param('suas_profile_std') == []:
+                self.conf_files['suas_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
             
         # Rewrite bootconsole configuration
         self.bootconsole_conf.change_param('component', self.component)
         self.bootconsole_conf.change_param('peer_component', self.peer_component)
         for label, conf_file in self.conf_files.iteritems():
             self.bootconsole_conf.change_param(label, conf_file)
+        
+        self.bootconsole_conf.write_conf()
             
     def _getOracleProducts(self, peer_host=None):
         try:
