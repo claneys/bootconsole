@@ -63,7 +63,7 @@ class Conf:
     def get_param(self, key, bare=False):
         ret = []
         for elt in self.param:
-            if elt.startswith(key):
+            if elt.split()[0] == key:
                 if bare == False:
                     try:
                         ret.append(elt.split(self.sep, 1)[1])

@@ -697,7 +697,7 @@ class SylepsConsole:
         return self._shutdown("Reboot the appliance?", "-r")
 
     def _adv_shutdown(self):
-        return self._shutdown("Shutdown the appliance?", "-h")
+        return self._shutdown("Shutdown the appliance?", "-P")
 
     def _adv_quit(self):
         if self.advanced_enabled:
