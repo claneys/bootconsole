@@ -49,7 +49,7 @@ class Syleps:
             self.component = 'DB'
             self.peer_component = 'AS'
             self.su_user = self.suux_user
-            if self.define_conf_file('db_tnsmames'):
+            if self.define_conf_file('db_tnsnames'):
                 self.conf_files['db_tnsnames'] = Syleps._find_file_in_homedir(self.db_user, 'tnsnames.ora')
             if self.define_conf_file('db_listener'):
                 self.conf_files['db_listener'] = Syleps._find_file_in_homedir(self.db_user, 'listener.ora')
