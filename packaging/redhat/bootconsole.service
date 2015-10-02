@@ -1,0 +1,11 @@
+[Unit]
+Description=NCurse Configuration Bootconsole by Syleps
+After=network.target
+
+[Service]
+Type=oneshot
+Environment=TERM=linux LANG=en_US
+ExecStart=/usr/bin/python /usr/bin/startscreen
+
+[Install]
+WantedBy=multi-user.target

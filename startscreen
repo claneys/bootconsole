@@ -26,9 +26,6 @@ import bootconsole.conf as conf
 import bootconsole.block as block
 from bootconsole.syleps import Syleps
 
-os.environ['TERM'] = 'xterm'
-os.environ['LANG'] = 'en_US'
-
 class Error(Exception):
     pass
 

@@ -47,6 +47,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %config %{_sysconfdir}/%{name}/%{name}.conf
 %config %{_sysconfdir}/%{name}/usage.txt
+%config %{_sysconfdir}/systemd/system/%{name}.service
 %{_bindir}/sic_seal
 %{_bindir}/startscreen
 %{python_sitelib}/*
