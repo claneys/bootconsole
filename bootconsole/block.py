@@ -20,15 +20,23 @@ class BlockDevices:
         # Corresponding expand command associated with the partition type
         # trailing space is important, do not strip it.
         self.resize_cmd_choice = { 'LVM2' : 'pvresize ',
-                              'ext[34]' : 'resize2fs ',
-                              'XFS': 'xfs_growfs',
-                              '82' : '',
-                              '5'  : 'echo "Do not support extended resize. Please call your Syleps SIC."'}
+                              'ext3' : 'resize2fs ',
+                              'ext4' : 'resize2fs ',
+                              'XFS' : 'xsf_growfs ',
+                              'swap' : '',
+                              'extended'  : 'echo "Do not support extended resize. Please call your Syleps SIC."'}
 
-    def detect_part_type(self, part):
+        self.partition_system_id = { 'LVM2' : '8e',
+                     'ext3' : '83',
+                     'ext4' : '83',
+                     'XFS'  : '83',
+                     'swap' : '82',
+                     'extended' : '5' }
+        
+    def detect_fs(self, part):
                 try:
-                    fstype = executil.getoutput('/usr/bin/file -s '+part+' | grep -Eo "LVM2|ext[2-4]|XFS|swap|extended"')
-                    return self.resize_cmd_choice[fstype]
+                    type = executil.getoutput('/usr/bin/file -s '+part+' | grep -Eo "LVM2|ext[2-4]|XFS|swap|extended"')
+                    return type
                 except:
                     raise Error('Error: FS not compatible')
 
@@ -65,8 +73,9 @@ class BlockDevices:
                 raise Error("Error: Bootconsole doesn't manage yet logical partitions.")
 
             lastpart_indice = str(part)
-            parttype = self.detect_part_type(device+lastpart_indice)
-            resize_cmd = self.resize_cmd_choice[parttype]+device+lastpart_indice
+            fs = self.detect_fs(device+lastpart_indice)
+            part_id = self.partition_system_id(fs)
+            resize_cmd = self.resize_cmd_choice[fs]+device+lastpart_indice
             max_size = self.get_max_size(device, lastpart_indice)
             ret = {'num': lastpart_indice, 'type': parttype, 'cmd': resize_cmd, 'max_size': max_size}
         return ret
