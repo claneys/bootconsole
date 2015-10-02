@@ -1,6 +1,6 @@
 %define name bootconsole
-%define version 1.25
-%define release 8.el7
+%define version 1.26
+%define release 10.el7
 
 Summary: Boot Ncurses Console configuration
 Name: %{name}
@@ -36,8 +36,10 @@ The basic tasks that the user may perform include:
 
 %build
 python setup.py build
+cp packaging/redhat/bootcs
 
-%install
+%install5t
+
 python setup.py install --root=$RPM_BUILD_ROOT
 
 %clean
@@ -47,7 +49,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %config %{_sysconfdir}/%{name}/%{name}.conf
 %config %{_sysconfdir}/%{name}/usage.txt
-%config %{_sysconfdir}/systemd/system/%{name}.service
+%config %{_sysconfdir}/systemd/system/getty@tty1.service
 %{_bindir}/sic_seal
 %{_bindir}/startscreen
 %{python_sitelib}/*
