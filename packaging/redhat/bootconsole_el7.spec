@@ -39,7 +39,7 @@ python setup.py build
 
 %install
 python setup.py install --root=$RPM_BUILD_ROOT
-install -D packaging/redhat/getty@tty1.service /etc/systemd/system/getty@tty1.service
+install -D packaging/redhat/getty@tty1.service ${RPM_BUILD_ROOT}/etc/systemd/system/getty@tty1.service
 
 %clean
 rm -rf $RPM_BUILD_ROOT
