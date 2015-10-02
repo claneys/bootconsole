@@ -77,7 +77,7 @@ class BlockDevices:
             part_id = self.partition_system_id[fs]
             resize_cmd = self.resize_cmd_choice[fs]+device+lastpart_indice
             max_size = self.get_max_size(device, lastpart_indice)
-            ret = {'num': lastpart_indice, 'type': parttype, 'cmd': resize_cmd, 'max_size': max_size}
+            ret = {'num': lastpart_indice, 'type': part_id, 'cmd': resize_cmd, 'max_size': max_size}
         return ret
 
     def rescan_disks(self):
@@ -104,7 +104,7 @@ class BlockDevices:
 
         output = executil.getoutput_popen(cmd, careabouterrors=False).split('\n')
         for line in output:
-            if 'Warning' in line:
+            if line.startswith('Warning'):
                 maximum = re.search(r'\((\d+)\)$', line).group(1)
                 return maximum
 
