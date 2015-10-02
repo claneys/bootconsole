@@ -49,7 +49,7 @@ rm -rf $RPM_BUILD_ROOT
 %config %{_sysconfdir}/%{name}/usage.txt
 %{_bindir}/sic_seal
 %{_bindir}/startscreen
-%{python_sitelib}/*m
+%{python_sitelib}/*
 
 %post
 # Grab first ethernet interface
