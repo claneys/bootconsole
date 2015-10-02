@@ -494,7 +494,7 @@ class SylepsConsole:
         sfdisk_cmd = 'sfdisk --no-reread -uS -L -N'+lastpart['num']+' '+device+' << EOF\n'
         sfdisk_script = ','+lastpart['max_size']+','+lastpart['type']+'\nEOF\n'
 
-        executil.system(sfdisk_cmd+sfdisk_script)
+        executil.system(sfdisk_cmd+sfdisk_script, careabouterrors=False)
         fh = open(self.fs2extend_file, 'a')
         fh.write(self.disk+' ')
         fh.close()
