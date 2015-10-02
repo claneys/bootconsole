@@ -22,7 +22,7 @@ class BlockDevices:
         self.resize_cmd_choice = { 'LVM2' : 'pvresize ',
                               'ext3' : 'resize2fs ',
                               'ext4' : 'resize2fs ',
-                              'XFS' : 'xsf_growfs ',
+                              'XFS' : 'xfs_growfs ',
                               'swap' : '',
                               'extended'  : 'echo "Do not support extended resize. Please call your Syleps SIC."'}
 
