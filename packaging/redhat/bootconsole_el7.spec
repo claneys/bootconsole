@@ -36,11 +36,10 @@ The basic tasks that the user may perform include:
 
 %build
 python setup.py build
-cp packaging/redhat/bootcs
 
-%install5t
-
+%install
 python setup.py install --root=$RPM_BUILD_ROOT
+install -D packaging/redhat/getty@tty1.service /etc/systemd/system/getty@tty1.service
 
 %clean
 rm -rf $RPM_BUILD_ROOT
