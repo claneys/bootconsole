@@ -1,6 +1,6 @@
 %define name bootconsole
 %define version 1.25
-%define release 6.el7
+%define release 7.el7
 
 Summary: Boot Ncurses Console configuration
 Name: %{name}
@@ -8,7 +8,6 @@ Version: %{version}
 Release: %{release}
 Source0: %{name}-%{version}.tar.gz
 License: GPL
-Source1: %{name}.conf
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Prefix: %{_prefix}
@@ -39,7 +38,7 @@ The basic tasks that the user may perform include:
 python setup.py build
 
 %install
-python setup.py install --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES
+python setup.py install --root=$RPM_BUILD_ROOT
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -50,7 +49,7 @@ rm -rf $RPM_BUILD_ROOT
 %config %{_sysconfdir}/%{name}/usage.txt
 %{_bindir}/sic_seal
 %{_bindir}/startscreen
-%{python_sitelib}/*
+%{python_sitelib}/*m
 
 %post
 # Grab first ethernet interface
