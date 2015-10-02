@@ -154,6 +154,14 @@ class SylepsConsole:
         hosts_conf = conf.Conf("hosts")
         first_run_flag = os.path.join(SylepsConsole.var_dir, 'first_run')
         try:
+            os.stat('/usr/bin/systemctl')
+            self.systemctl = { 'poweroff': '/usr/bin/systemctl poweroff',
+                               'reboot': '/usr/bin/systemctl reboot',}
+        except OSError:
+            self.systemctl = { 'poweroff': 'shutdown -h now',
+                               'reboot': 'shutdown -r now',}
+            
+        try:
             os.stat(first_run_flag)
             self.syleps.__syleps_init__(hosts_conf.get_host('PARTNER')['ip'])
         except OSError:
@@ -682,10 +690,9 @@ class SylepsConsole:
 
         return "advanced"
 
-    def _shutdown(self, text, opt):
+    def _shutdown(self, text, cmd):
         if self.console.yesno(text) == self.OK:
             self.running = False
-            cmd = "shutdown %s now" % opt
             fgvt = os.environ.get("FGVT")
             if fgvt:
                 cmd = "chvt %s; " % fgvt + cmd
@@ -694,10 +701,10 @@ class SylepsConsole:
         return "advanced"
 
     def _adv_reboot(self):
-        return self._shutdown("Reboot the appliance?", "-r")
+        return self._shutdown("Reboot the appliance?", self.systemctl['reboot'])
 
     def _adv_shutdown(self):
-        return self._shutdown("Shutdown the appliance?", "-P")
+        return self._shutdown("Shutdown the appliance?", self.systemctl['poweroff'])
 
     def _adv_quit(self):
         if self.advanced_enabled:
