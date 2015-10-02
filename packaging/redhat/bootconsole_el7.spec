@@ -44,8 +44,9 @@ python setup.py install --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%files -f INSTALLED_FILES
+%files -n bootconsole
 %defattr(-,root,root)
+%{python_sitelib}/bootconsole
 
 %post
 # Grab first ethernet interface
