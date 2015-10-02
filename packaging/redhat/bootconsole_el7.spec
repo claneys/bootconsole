@@ -46,6 +46,10 @@ rm -rf $RPM_BUILD_ROOT
 
 %files -n bootconsole
 %defattr(-,root,root)
+%config %{_sysconfdir}/%{name}/%{name}.conf
+%config %{_sysconfdir}/%{name}/usage.txt
+%{_bindir}/sic_seal
+%{_bindir}/startscreen
 %{python_sitelib}/bootconsole
 
 %post
