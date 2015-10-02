@@ -1,6 +1,6 @@
 %define name bootconsole
 %define version 1.25
-%define release 7.el7
+%define release 8.el7
 
 Summary: Boot Ncurses Console configuration
 Name: %{name}
@@ -50,6 +50,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_bindir}/sic_seal
 %{_bindir}/startscreen
 %{python_sitelib}/*
+/var/lib/bootconsole
 
 %post
 # Grab first ethernet interface
