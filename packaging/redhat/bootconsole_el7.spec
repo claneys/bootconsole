@@ -46,9 +46,6 @@ rm -rf $RPM_BUILD_ROOT
 
 %files -f INSTALLED_FILES
 %defattr(-,root,root)
-%config %{_sysconfdir}/%{name}/%{name}.conf
-%config %{_sysconfdir}/%{name}/usage.txt
-%{_var}/lib/bootconsole
 
 %post
 # Grab first ethernet interface
