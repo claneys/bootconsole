@@ -19,21 +19,16 @@ class BlockDevices:
         self.disks = self.get_disks()
         # Corresponding expand command associated with the partition type
         # trailing space is important, do not strip it.
-        self.resize_cmd_choice = { '8e' : 'pvresize ',
-                              '83' : 'resize2fs ',
+        self.resize_cmd_choice = { 'LVM2' : 'pvresize ',
+                              'ext[34]' : 'resize2fs ',
+                              'XFS': 'xfs_growfs',
                               '82' : '',
                               '5'  : 'echo "Do not support extended resize. Please call your Syleps SIC."'}
 
-        self.code_type = { 'LVM2' : '8e',
-                     'ext3' : '83',
-                     'ext4' : '83',
-                     'swap' : '82',
-                     'extended' : '5' }
-
     def detect_part_type(self, part):
                 try:
-                    type = executil.getoutput('/usr/bin/file -s '+part+' | grep -Eo "LVM2|ext[2-4]|XFS|swap|extended"')
-                    return self.code_type[type]
+                    fstype = executil.getoutput('/usr/bin/file -s '+part+' | grep -Eo "LVM2|ext[2-4]|XFS|swap|extended"')
+                    return self.resize_cmd_choice[fstype]
                 except:
                     raise Error('Error: FS not compatible')
 

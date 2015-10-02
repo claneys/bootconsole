@@ -99,6 +99,7 @@ class NetworkSettings:
                   "GATEWAY=%s" % gateway,
                   "DNS1=%s" % nameservers[0],
                   "DNS2=%s" % nameservers[1],
+                  "DOMAIN=%s" % search_domain,
                   "ONBOOT=yes"]
         
         networkconf = ["NETWORKING=yes"]
