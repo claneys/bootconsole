@@ -74,7 +74,7 @@ class BlockDevices:
 
             lastpart_indice = str(part)
             fs = self.detect_fs(device+lastpart_indice)
-            part_id = self.partition_system_id(fs)
+            part_id = self.partition_system_id[fs]
             resize_cmd = self.resize_cmd_choice[fs]+device+lastpart_indice
             max_size = self.get_max_size(device, lastpart_indice)
             ret = {'num': lastpart_indice, 'type': parttype, 'cmd': resize_cmd, 'max_size': max_size}
