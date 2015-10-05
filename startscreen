@@ -171,7 +171,7 @@ class SylepsConsole:
             while 1:
                 retcode, input = first_run.form('Appliance Partner Node', 'What are the partner node\'s ip address ?', fields)
                 if IP.is_legal(input[1]) and NetworkInfo.is_legal_hostname(input[0]):
-                    self.syleps.__syleps_init__(input[0])
+                    self.syleps.__syleps_init__(input[1])
 
                     host = { 'hostname':self.NetworkInfo.hostname,
                             'ip': SysInterfaceInfo(self.default_nic).address
