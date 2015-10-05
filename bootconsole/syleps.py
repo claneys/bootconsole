@@ -14,8 +14,12 @@ import ConfigParser
 from conf import Conf
 import pwd
 from conf import Conf
-class Error(Exception):
-    pass
+class SylepsError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+        
+    def __str__(self):
+        return repr(self.msg)
 
 class Syleps:
     '''
@@ -143,7 +147,7 @@ class Syleps:
                 if filee == file2find and not re.search(excludepattern, root):
                     return os.path.join(root, file2find)
                 
-        raise(Exception("File not found, or wrong user selected!"))
+        raise(SylepsError("File not found, or wrong user selected!"))
 
     def _make_password(self, hostname, aliases):
         '''
@@ -157,7 +161,7 @@ class Syleps:
                 elt = NetworkInfo.get_shortname(elt)
                 password = re.sub(r'(db|as)(su)', r'pw\2', elt)
                 return password
-        raise Exception('Can\'t make password. Check hostname and alias.')
+        raise SylepsError('Can\'t make password. Check hostname and alias, there is may be lack of a Syleps compliant hostname (ie: CCCSSSdbsup).')
     
     def _change_dads(self, conf, password):
         '''
