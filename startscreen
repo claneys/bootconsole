@@ -144,12 +144,18 @@ class SylepsConsole:
         except conf.Error:
             pass
 
+###########################################################################################################
+#
+#    Internal object's functions
+#
+###########################################################################################################
+
     def _first_run(self):
         # Just end the initialisation phase with latest value initialized
         def _last_init():
             fh = open(first_run_flag, 'r')
-            self.version = fh.readline()
-            self.peer_version = fh.readline()
+            self.version = fh.readline().strip()
+            self.peer_version = fh.readline().strip()
             fh.close()
             self.component = SylepsConsole.config.get_param('component')
             self.peer_component = SylepsConsole.config.get_param('peer_component')
@@ -227,7 +233,7 @@ class SylepsConsole:
             ifname = None
 
         if ifname:
-#            self.default_nic_set = True
+            self.default_nic_set = True
             if _validip(ifname):
                 return ifname
 
@@ -240,13 +246,12 @@ class SylepsConsole:
     def _check_error(self, err):
         if err:
             self.console.msgbox('Error', err)
-            
+
     def _get_advmenu(self):
         items = []
         items.append(("Networking", "Configure appliance networking"))
         items.append(("Hosts", "Configure /etc/hosts and hostname settings"))
-        # Abandonned configuration, dialog doesn't support so much choice in menu
-        #items.append(("Timezone", "Configure system timezone"))
+        items.append(("Versions", "Update version DB and AS informations"))
         items.append(('NTP', 'Configure NTP servers'))
         items.append(("Filesystems", "Grow last filesystem on a disk"))
 
@@ -254,6 +259,40 @@ class SylepsConsole:
         items.append(("Shutdown", "Shutdown the appliance"))
 
         return items
+
+    def advanced(self):
+        # Don't display cancel button when no interfaces at all
+        no_cancel = False
+        if len(self.ifnames) == 0:
+            no_cancel = True
+        retcode, choice = self.console.menu("Advanced Menu",
+                                            self.appname + " Advanced Menu\n",
+                                            self._get_advmenu(),
+                                            no_cancel=no_cancel)
+
+        if retcode is not self.OK:
+            return "usage"
+
+        return "_adv_" + choice.lower()
+    
+    def keep_ifconf(self):
+        param = 'default_nic'
+        self.config.del_param(param)
+        self.config.set_param(param, self.default_nic)
+        self.config.write_conf()
+        self.default_nic_set = True
+
+        text = self._get_ifconftext(self.default_nic)
+        if self.console.yesno("%s\n\nAre we keeping this network configuration ?"% text, 20, 60) == self.OK:
+            return 'usage'
+        else:
+           return 'networking'
+
+###########################################################################################################
+#
+#    Networking user interfaces functions
+#
+###########################################################################################################
 
     def networking(self):
 
@@ -337,21 +376,6 @@ class SylepsConsole:
                 text += "no\n"
 
         return text
-
-    def advanced(self):
-        #dont display cancel button when no interfaces at all
-        no_cancel = False
-        if len(self.ifnames) == 0:
-            no_cancel = True
-        retcode, choice = self.console.menu("Advanced Menu",
-                                            self.appname + " Advanced Menu\n",
-                                            self._get_advmenu(),
-                                            no_cancel=no_cancel)
-
-        if retcode is not self.OK:
-            return "usage"
-
-        return "_adv_" + choice.lower()
 
     def ifconf(self):
         retcode, choice = self.console.menu("%s configuration" % self.ifname,
@@ -467,6 +491,12 @@ class SylepsConsole:
         self._check_error(err)
 
         return "ifconf"
+
+###########################################################################################################
+#
+#    Advanced menu choice functions
+#
+###########################################################################################################
 
     def _adv_filesystems(self):
         '''
@@ -686,20 +716,10 @@ class SylepsConsole:
 
         return 'advanced'
     
-    def _adv_timezone(self):
-        timezones = []
-        os.chdir('/usr/share/zoneinfo')
-        for zone in os.listdir('.'):
-            if os.path.isdir(zone) and zone == "Europe":
-                for elt in os.listdir(zone):
-                    timezone = os.path.join(zone, elt)
-                    timezones.append(timezone)
-
-        retcode, choice = self.console.menu("Timezone Selection",
-                                            self.appname + "Timezone Selection\n",
-                                            timezones)
-
-        return "advanced"
+    def _adv_versions(self):
+        os.remove(os.path.join(SylepsConsole.var_dir, 'first_run'))
+        self._first_run()
+        return 'advanced'
 
     def _shutdown(self, text, cmd):
         if self.console.yesno(text) == self.OK:
@@ -731,6 +751,12 @@ class SylepsConsole:
     _adv_networking = networking
     quit = _adv_quit
 
+###########################################################################################################
+#
+#    Running motor functions ( The main... )
+#
+###########################################################################################################
+
     def loop(self, dialog="usage"):
         self.running = True
         prev_dialog = dialog
@@ -752,19 +778,6 @@ class SylepsConsole:
 
                 self.console.msgbox("Caught exception", sio.getvalue())
                 dialog = prev_dialog
-
-    def keep_ifconf(self):
-        param = 'default_nic'
-        self.config.del_param(param)
-        self.config.set_param(param, self.default_nic)
-        self.config.write_conf()
-        self.default_nic_set = True
-
-        text = self._get_ifconftext(self.default_nic)
-        if self.console.yesno("%s\n\nAre we keeping this network configuration ?"% text, 20, 60) == self.OK:
-            return 'usage'
-        else:
-           return 'networking'
 
     def usage(self):
         if self.advanced_enabled:
