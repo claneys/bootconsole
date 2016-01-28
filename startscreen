@@ -193,8 +193,10 @@ class SylepsConsole:
                     peer_host = { 'hostname' : input[0],
                                 'ip': input[1],
                     }
-                    # Write host peering into /etc/hosts
+                    # Write host component
                     hosts_conf.set_hosts(host['ip'], host['hostname'], [self.syleps.component], peer_host['hostname'], [self.syleps.peer_component], peer_host['ip'])
+                    SylepsConsole.config.set_param('component', self.syleps.component)
+                    SylepsConsole.config.set_param('peer_component', self.syleps.peer_component)                    
                     
                     # Just store version info into the first flag file
                     # So we can retrieve them later without going to ask the peer node.
