@@ -127,7 +127,7 @@ class NetworkSettings:
         networkconf = "\n".join(networkconf)
 
         self.write_conf(self.NETWORK_FILE, networkconf)
-        executil.system("hostname %s" % hostname)
+        executil.system("hostnamectl set-hostname %s" % hostname)
 
 
 class NetworkInterface:
