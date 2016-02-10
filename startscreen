@@ -119,11 +119,13 @@ class SylepsConsole:
         self.console = Console(title, self.width, self.height)
         self.appname = "Syleps Linux"
         self.advanced_enabled = advanced_enabled
-
+        self.component = SylepsConsole.config.get_param('component')
+        self.peer_component = SylepsConsole.config.get_param('peer_component')
         self.syleps = Syleps()
         self.default_nic = self.get_default_nic()
         self.fs2extend_file = os.path.join(self.var_dir, 'fs2extend')
-
+        self.systemctl = self._get_systemctl()
+        
         # Detect if we have to grow fs
         try:
             if os.path.exists(self.fs2extend_file):
@@ -149,11 +151,22 @@ class SylepsConsole:
 #    Internal object's functions
 #
 ###########################################################################################################
-
-    def _first_run(self):
+    @staticmethod
+    def _get_systemctl():
+        try:
+            os.stat('/usr/bin/systemctl')
+            systemctl = { 'poweroff': '/usr/bin/systemctl poweroff',
+                               'reboot': '/usr/bin/systemctl reboot',}
+        except OSError:
+            systemctl = { 'poweroff': 'shutdown -h now',
+                               'reboot': 'shutdown -r now',}
+        
+        return systemctl
+    
+    def _update_versions(self):
         # Just end the initialisation phase with latest value initialized
         def _last_init():
-            fh = open(first_run_flag, 'r')
+            fh = open(version_file, 'r')
             self.version = fh.readline().strip()
             self.peer_version = fh.readline().strip()
             fh.close()
@@ -161,29 +174,22 @@ class SylepsConsole:
             self.peer_component = SylepsConsole.config.get_param('peer_component')
             
         hosts_conf = conf.Conf("hosts")
-        first_run_flag = os.path.join(SylepsConsole.var_dir, 'first_run')
-        try:
-            os.stat('/usr/bin/systemctl')
-            self.systemctl = { 'poweroff': '/usr/bin/systemctl poweroff',
-                               'reboot': '/usr/bin/systemctl reboot',}
-        except OSError:
-            self.systemctl = { 'poweroff': 'shutdown -h now',
-                               'reboot': 'shutdown -r now',}
+        version_file = os.path.join(SylepsConsole.var_dir, 'versions')
             
         # Ok ! Do we ran before and set up the file flag ?
         try:
-            os.stat(first_run_flag)
+            os.stat(version_file)
             _last_init()
         except OSError:
             # NO !
             # Just going ask for the peer node so
-            first_run = Console(title='First run wizard', width=85, height=25)
+            version_run = Console(title='First run wizard', width=85, height=25)
             fields = [
                 ("Hostname for the appliance partner node:", '', 30, 30),
                 ("IP address for the appliance partner node:", '', 30, 30),
             ]
             while 1:
-                retcode, input = first_run.form('Appliance Partner Node', 'Partner node AS or DB has to be up and installed.\nWhat are the partner node\'s ip address ?', fields)
+                retcode, input = version_run.form('Appliance Partner Node', 'Partner node AS or DB has to be up and installed.\nWhat are the partner node\'s ip address ?', fields)
                 if IP.is_legal(input[1]) and NetworkInfo.is_legal_hostname(input[0]):
                     self.syleps.__syleps_init__(input[1])
 
@@ -200,13 +206,13 @@ class SylepsConsole:
                     
                     # Just store version info into the first flag file
                     # So we can retrieve them later without going to ask the peer node.
-                    fh = open(first_run_flag, 'w')
+                    fh = open(version_file, 'w')
                     fh.write("%s\n%s\n" % (self.syleps.version, self.syleps.peer_version))
                     fh.close()
                     _last_init()
                     break
                 else:
-                    first_run.msgbox('Error', 'Invalid IP address or hostname')
+                    version_run.msgbox('Error', 'Invalid IP address or hostname')
 
     def _get_serial(self):
         if self.component != 'AS' and self.component != 'DB':
@@ -719,8 +725,11 @@ class SylepsConsole:
         return 'advanced'
     
     def _adv_versions(self):
-        os.remove(os.path.join(SylepsConsole.var_dir, 'first_run'))
-        self._first_run()
+        try:
+            os.remove(os.path.join(SylepsConsole.var_dir, 'versions'))
+        except OSError:
+            pass
+        self._update_versions()
         return 'advanced'
 
     def _shutdown(self, text, cmd):
@@ -813,28 +822,31 @@ class SylepsConsole:
             self._check_error(error)
             self.default_nic = self.config.get_param('default_nic')
             return "networking"
-
-        # Launch first run wizard
-        self._first_run()
-            
-        #display usage
-        ipaddr = SysInterfaceInfo(ifname).get_ipconf()[0]
-        hostname = self.NetworkInfo.hostname
-
-        #backwards compatible - use usage.txt if it exists
-        t = file(conf.path("usage.txt"), 'r').read()
-        text = Template(t).substitute(serial=self._get_serial(), hostname=hostname, ipaddr=ipaddr, local_version=self.version, peer_version=self.peer_version)
-
-        text += "\n" * (self.height - len(text.splitlines()) - 7)
-        text += "\Z3                            Syleps SU Appliance\n"
-        text += "                          https://www.syleps.com"
-
-        retcode = self.console.msgbox("Sydel Univers appliance services",
-                                      text, button_label=default_button_label)
-
-        if retcode is not self.OK:
-            self.running = False
-
+        
+        # if no Oracle versions set
+        if hasattr(self, 'version'):
+            #display usage
+            ipaddr = SysInterfaceInfo(ifname).get_ipconf()[0]
+            hostname = self.NetworkInfo.hostname
+    
+            #backwards compatible - use usage.txt if it exists
+            t = file(conf.path("usage.txt"), 'r').read()
+            text = Template(t).substitute(serial=self._get_serial(), hostname=hostname, ipaddr=ipaddr, local_version=self.version, peer_version=self.peer_version)
+    
+            text += "\n" * (self.height - len(text.splitlines()) - 7)
+            text += "\Z3                            Syleps SU Appliance\n"
+            text += "                          https://www.syleps.com"
+    
+            retcode = self.console.msgbox("Sydel Univers appliance services",
+                                          text, button_label=default_button_label)
+    
+            if retcode is not self.OK:
+                self.running = False
+        else:
+            self.console.msgbox('Notice',
+                                'Your installation doesn\'t have Oracle versions set.\nMay be, it is your first launch, please finish your installation, then use "Versions" menu to update informations')
+            return default_return_value
+        
         return default_return_value
 
 def main():
