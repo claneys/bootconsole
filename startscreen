@@ -59,6 +59,7 @@ class Console:
             text = "Do you really want to quit?"
             if self.console.yesno(text) == 0:
                 self.running = False
+                sys.exit(0)
             else:
                 return False
         return True
@@ -191,8 +192,11 @@ class SylepsConsole:
             while 1:
                 retcode, input = version_run.form('Appliance Partner Node', 'Partner node AS or DB has to be up and installed.\nWhat are the partner node\'s ip address ?', fields)
                 if IP.is_legal(input[1]) and NetworkInfo.is_legal_hostname(input[0]):
-                    self.syleps.__syleps_init__(input[1])
-
+                    err = self.syleps.get_ora_versions(input[1])
+                    if err:
+                        self._check_error(err)
+                        break
+                    
                     host = { 'hostname':self.NetworkInfo.hostname,
                             'ip': SysInterfaceInfo(self.default_nic).address
                     }
@@ -715,11 +719,12 @@ class SylepsConsole:
                 peer_aliases.append(self.peer_component)
                 err = hosts_conf.set_hosts(ip, hostname, aliases, peer_hostname, peer_aliases, peer_ip)
             self._check_error(err)
-
-            # Change Syleps ux user password as it rely on hostname.
-            err = self.syleps.change_password(hostname, aliases)
-            self._check_error(err)
-
+            
+            if self.console.yesno('Do you want to change SU DB user\'s password (needed if you modified Syleps compliant hostname or alias)?', 30, 45) == self.OK:
+                # Change Syleps ux user password as it rely on hostname.
+                err = self.syleps.change_password(hostname, aliases)
+                self._check_error(err)
+            
             break
 
         return 'advanced'

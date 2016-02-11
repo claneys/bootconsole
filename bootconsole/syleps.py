@@ -14,6 +14,7 @@ import ConfigParser
 from conf import Conf
 import pwd
 from conf import Conf
+
 class SylepsError(Exception):
     def __init__(self, msg):
         self.msg = msg
@@ -42,9 +43,13 @@ class Syleps:
                             'network' : ifutil.NetworkSettings.NETWORK_FILE,
                             'net_interface' : '%s/ifcfg-%s' % (ifutil.NetworkSettings.IFCFG_DIR, bootconsole_conf.get_param('default_nic')),
         }
-
-    def __syleps_init__(self, peer_host):
+        
+    def get_ora_versions(self, peer_host):
         OracleProductsInstalled = self._getOracleProducts(peer_host)
+        # Check there is no errors
+        if isinstance(OracleProductsInstalled, str):
+            return OracleProductsInstalled
+        
         self.version = re.sub(r'\s+', ' ',OracleProductsInstalled[0][0])
         self.peer_version = re.sub(r'\s+', ' ', OracleProductsInstalled[1][0])
 
@@ -88,6 +93,9 @@ class Syleps:
         self.bootconsole_conf.change_param('component', self.component)
         self.bootconsole_conf.change_param('peer_component', self.peer_component)
         for label, conf_file in self.conf_files.iteritems():
+            # Check if all files found
+            if conf_file.startswith('Error'):
+                return conf_file
             self.bootconsole_conf.change_param(label, conf_file)
         
         self.bootconsole_conf.write_conf()
@@ -110,6 +118,10 @@ class Syleps:
         except:
             opatch_cmd = Syleps._find_file_in_homedir(self.db_user, 'opatch')
             users = [ self.db_user, self.as_user ]
+        
+        # Check opatch file retrieved
+        if opatch_cmd.startswith('Error'):
+            return opatch_cmd
         
         # Make awk cmd to extract only products installed, except Examples products.
         begin_pattern = 'Installed Top-level Products'
@@ -147,8 +159,14 @@ class Syleps:
                 if filee == file2find and not re.search(excludepattern, root):
                     return os.path.join(root, file2find)
                 
-        raise(SylepsError("File not found, or wrong user selected!"))
+        return "Error: %s File not found, or wrong user selected!\nCheck your bootconsole configuration." % file2find
 
+    @staticmethod
+    def _check_ret(ret):
+        if ret == None:
+            return True
+        pass
+    
     def _make_password(self, hostname, aliases):
         '''
         Determine su ux user password based on hostname
@@ -161,7 +179,7 @@ class Syleps:
                 elt = NetworkInfo.get_shortname(elt)
                 password = re.sub(r'(db|as)(su)', r'pw\2', elt)
                 return password
-        raise SylepsError('Can\'t make password. Check hostname and alias, there is may be lack of a Syleps compliant hostname (ie: CCCSSSdbsup).')
+        return 'Error : Can\'t make password from hostname.\nCheck hostname and alias, may be you do not supply a Syleps compliant value(ie: CCCSSSdbsup).'
     
     def _change_dads(self, conf, password):
         '''
@@ -175,7 +193,7 @@ class Syleps:
             conf.set_param('PlsqlDatabasePassword', password, pos)
             conf.write_conf()
         except ValueError:
-            return 'Don\'t find PlsqlDatabasePassword statement in dads.conf file.'
+            return 'Error: Don\'t find PlsqlDatabasePassword statement in dads.conf file.'
 
     def _change_formsweb(self, conf, password):
         '''
@@ -192,10 +210,12 @@ class Syleps:
             conf.set(self.su_user, 'userid', userid_val)
             conf.write(open(self.conf_files['as_formsweb'],'w'))
         except ConfigParser.NoSectionError:
-            return 'No section "%s" into formsweb.cfg file.' % self.su_user
+            return 'Error: No section "%s" into formsweb.cfg file.' % self.su_user
 
     def change_password(self, hostname, aliases):
         password = self._make_password(hostname, aliases)
+        if password.startswith('Error'):
+            return password
         ret = []
         ret.append(self.change_su_password(password))
         ret.append(self.change_system_passwd(password))
@@ -226,7 +246,7 @@ class Syleps:
             err = filter(None, err)       
             
             if err != []:
-                err.append('\nAbort changing SU password.\nAnyway, your hosts file was writen.')
+                err.append('Error: \nAbort changing SU password.\nAnyway, your hosts file was writen.')
                 return '\n'.join(err)
         except KeyError:
             pass
@@ -234,19 +254,19 @@ class Syleps:
         try:
             executil.system('/bin/su '+ self.su_user +' - -c "~'+self.su_user+'/run/bin/change_hostname.sh" > /dev/null 2>&1')
         except executil.ExecError:
-            return 'Can\'t execute change_hostname.sh script.\nMay be user %s doesn\'t exists or script is missing.\nSU password has not been changed.' % self.su_user
+            return 'Error: Can\'t execute change_hostname.sh script.\nMay be user %s doesn\'t exists or script is missing.\nSU password has not been changed.' % self.su_user
 
     def change_system_passwd(self, password):
         cmd_sys = subprocess.Popen(['/usr/bin/passwd', '--stdin', self.su_user], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         output = cmd_sys.communicate(input=password)
         retcode = cmd_sys.wait()
         if retcode != 0:
-            return 'Changing %s password error! Output : %s'% (self.su_user, output)
+            return 'Error: Changing %s password error! Output : %s'% (self.su_user, output)
         cmd_smb = subprocess.Popen(['/usr/bin/smbpasswd', '-s', self.su_user], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         output = cmd_smb.communicate(input=password+'\n'+password)
         retcode = cmd_smb.wait()
         if retcode != 0:
-            return 'Changing %s samba password error! Output : %s'% (self.su_user, output)
+            return 'Error: Changing %s samba password error! Output : %s'% (self.su_user, output)
         
     def record_checksums(self):
         '''
