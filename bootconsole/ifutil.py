@@ -124,7 +124,7 @@ class NetworkSettings:
                 continue
             networkconf.append(line)
         networkconf.append("HOSTNAME=%s" % hostname)
-        networkconf = "\n".join(networkconf)
+        networkconf = "".join(networkconf)
 
         self.write_conf(self.NETWORK_FILE, networkconf)
         executil.system("hostnamectl set-hostname %s" % hostname)
