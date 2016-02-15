@@ -91,9 +91,10 @@ class NetworkSettings:
 
     def set_static(self, ifname, addr, netmask, gateway=None, nameservers=[None, None], search_domain=None):
         filepath = self._filepath_assembler(ifname)
+        
         ifconf = "DEVICE=%s\nBOOTPROTO=none\nONBOOT=yes" % (ifname)
         ifconf = ["DEVICE=%s" % ifname,
-                  "BOOTPROTO=static",
+                  "BOOTPROTO=none",
                   "IPADDR=%s" % addr,
                   "NETMASK=%s" % netmask,
                   "GATEWAY=%s" % gateway,
@@ -101,6 +102,13 @@ class NetworkSettings:
                   "DNS2=%s" % nameservers[1],
                   "DOMAIN=%s" % search_domain,
                   "ONBOOT=yes"]
+        
+        # Adding others lines from standard configuration file
+        for line in self.conf[ifname].split('\n'):
+            for elt in ifconf:
+                # Si les deux lignes ne commencent pas pareils alors on les ajoute
+                if not line.startswith(elt.split('=')[0]) or not line.startswith('PREFIX'):
+                    ifconf.append(line)
         
         networkconf = ["NETWORKING=yes"]
         
@@ -120,7 +128,9 @@ class NetworkSettings:
         fh = file(self.NETWORK_FILE, 'r')
         networkconf = []
         for line in fh.readlines():
-            if line.startswith('HOSTNAME'):
+            if line.startswith('HOSTNAME') or self.HEADER_SYLEPS in line or self.WARN_SYLEPS in line:
+                continue
+            if line == '\n':
                 continue
             networkconf.append(line)
         networkconf.append("HOSTNAME=%s" % hostname)
