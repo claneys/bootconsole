@@ -439,9 +439,8 @@ class SylepsConsole:
                                                                         iprange) ]
             return []
 
-        input = [self.ip, self.netmask, self.gateway]
+        input = [self.ip, self.netmask, self.gateway, self.search_domain]
         input.extend(self.nameservers)
-        input.append(self.search_domain)
         # include minimum 2 nameserver fields and 1 blank one
         if len(input) < 4:
             input.append('')
@@ -457,9 +456,9 @@ class SylepsConsole:
                 ("IP Address", input[0], field_width, field_limit),
                 ("Netmask", input[1], field_width, field_limit),
                 ("Default Gateway", input[2], field_width, field_limit),
-                ("Name Server #1", input[3], field_width, field_limit),
-                ("Name Server #2", input[4], field_width, field_limit),
-                ("Search Domain", input[5], field_width, field_limit)
+                ("Search Domain", input[3], field_width, field_limit),
+                ("Name Server #1", input[4], field_width, field_limit),
+                ("Name Server #2", input[5], field_width, field_limit),
             ]
 
             text = "Static IP configuration (%s)" % self.ifname
@@ -478,11 +477,11 @@ class SylepsConsole:
                 break
 
             new_ip, new_netmask, new_gateway = input[:3]
-            new_nameservers = input[3:5]
+            new_nameservers = input[4:]
             for i in range(new_nameservers.count('')):
                 new_nameservers.remove('')
 
-            new_search_domain = input[5]
+            new_search_domain = input[3]
             
             err = _validate(new_ip, new_netmask, new_gateway, new_nameservers)
             if err:
