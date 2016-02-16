@@ -686,7 +686,7 @@ class SylepsConsole:
             fields.append((label_mapping[self.peer_component] + " additional(s) aliases", input[3], field_width, field_limit))
             fields.append((label_mapping[self.peer_component] + " IP address", input[4], field_width, field_limit))
             
-            text = "Set /etc/hosts entries. Hostname can be shortname or fqdn.\nSpecify comma separated alias. There are optionnal and let you add hostname to be resolved."
+            text = "Set /etc/hosts entries. Hostname can be shortname or fqdn and you can specify comma separated additionnal alias.\nYou must include for each host a Syleps compliant hostname or alias with form CCCSSSdbsup or CCCSSSassup.\nIf you don't know about it please ask Syleps SIC team, thanks."
             retcode, input = self.console.form("Hosts settings", text, fields)
 
             if retcode is not self.OK:
@@ -712,7 +712,7 @@ class SylepsConsole:
                 err = hosts_conf.set_hosts(ip, hostname, aliases, peer_hostname, peer_aliases, peer_ip)
             self._check_error(err)
             
-            if self.console.yesno('Do you want to change SU DB user\'s password ?\nNeeded if you modified Syleps compliant hostname or alias (ie: CCCSSSdbsup).', 30, 45) == self.OK:
+            if self.console.yesno('Do you want to change SU DB user\'s password ?\nNeeded if you modified mandatory Syleps compliant hostname or alias (ie: CCCSSSdbsup).', 30, 45) == self.OK:
                 # Change Syleps ux user password as it rely on hostname.
                 err = Syleps().change_password(hostname, aliases)
                 self._check_error(err)
