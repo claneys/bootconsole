@@ -44,19 +44,25 @@ class Syleps:
                             'net_interface' : '%s/ifcfg-%s' % (ifutil.NetworkSettings.IFCFG_DIR, bootconsole_conf.get_param('default_nic')),
         }
         
-    def get_ora_versions(self, peer_host):
+    def get_ora_versions(self, peer_host, vfile):
         OracleProductsInstalled = self._getOracleProducts(peer_host)
         # Check there is no errors
         if isinstance(OracleProductsInstalled, str):
             return OracleProductsInstalled
         
-        self.version = re.sub(r'\s+', ' ',OracleProductsInstalled[0][0])
-        self.peer_version = re.sub(r'\s+', ' ', OracleProductsInstalled[1][0])
-
+        version = re.sub(r'\s+', ' ',OracleProductsInstalled[0][0])
+        peer_version = re.sub(r'\s+', ' ', OracleProductsInstalled[1][0])
+        
+        # Just store version info into the first flag file
+        # So we can retrieve them later without going to ask the peer node.
+        fh = open(vfile, 'w')
+        fh.write("%s\n%s\n" % (version, peer_version))
+        fh.close()
+        
         # Only process first product installed as we install one product by machine
         if 'Database' in OracleProductsInstalled[0][0]:
-            self.component = 'DB'
-            self.peer_component = 'AS'
+            component = 'DB'
+            peer_component = 'AS'
             self.su_user = self.suux_user
             if self.define_conf_file('db_tnsnames'):
                 self.conf_files['db_tnsnames'] = Syleps._find_file_in_homedir(self.db_user, 'tnsnames.ora')
@@ -71,8 +77,8 @@ class Syleps:
             if self.define_conf_file('suux_profile_std'):
                 self.conf_files['suux_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
         else:
-            self.component = 'AS'
-            self.peer_component = 'DB'
+            component = 'AS'
+            peer_component = 'DB'
             self.su_user = self.suas_user
             if self.define_conf_file('as_tnsnames'):
                 self.conf_files['as_tnsnames'] = Syleps._find_file_in_homedir(self.as_user, 'tnsnames.ora')
@@ -90,8 +96,8 @@ class Syleps:
                 self.conf_files['suas_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
             
         # Rewrite bootconsole configuration
-        self.bootconsole_conf.change_param('component', self.component)
-        self.bootconsole_conf.change_param('peer_component', self.peer_component)
+        self.bootconsole_conf.change_param('component', component)
+        self.bootconsole_conf.change_param('peer_component', peer_component)
         for label, conf_file in self.conf_files.iteritems():
             # Check if all files found
             if conf_file.startswith('Error'):
@@ -112,16 +118,16 @@ class Syleps:
             return False
             
     def _getOracleProducts(self, peer_host=None):
-        try:
-            opatch_cmd = Syleps._find_file_in_homedir(self.as_user, 'opatch')
-            users = [ self.as_user, self.db_user ]
-        except:
-            opatch_cmd = Syleps._find_file_in_homedir(self.db_user, 'opatch')
-            users = [ self.db_user, self.as_user ]
-        
+
+        opatch_cmd = Syleps._find_file_in_homedir(self.as_user, 'opatch')
+        users = [ self.as_user, self.db_user ]
         # Check opatch file retrieved
         if opatch_cmd.startswith('Error'):
-            return opatch_cmd
+            opatch_cmd = Syleps._find_file_in_homedir(self.db_user, 'opatch')
+            users = [ self.db_user, self.as_user ]
+            # Again
+            if opatch_cmd.startswith('Error'):
+                return opatch_cmd
         
         # Make awk cmd to extract only products installed, except Examples products.
         begin_pattern = 'Installed Top-level Products'

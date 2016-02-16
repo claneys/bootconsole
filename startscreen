@@ -111,7 +111,8 @@ class SylepsConsole:
     block_devices = block.BlockDevices()
     var_dir = config.get_param('var_dir')
     ifnames = NetworkInfo.get_filtered_ifnames()
-    
+    version_file = os.path.join(var_dir, 'versions')
+
     def __init__(self, advanced_enabled=True):
         # Console attribute
         title = "Syleps Linux Configuration Console"
@@ -122,7 +123,6 @@ class SylepsConsole:
         self.advanced_enabled = advanced_enabled
         self.component = SylepsConsole.config.get_param('component')
         self.peer_component = SylepsConsole.config.get_param('peer_component')
-        self.syleps = Syleps()
         self.default_nic = self.get_default_nic()
         self.fs2extend_file = os.path.join(self.var_dir, 'fs2extend')
         self.systemctl = self._get_systemctl()
@@ -163,24 +163,23 @@ class SylepsConsole:
                                'reboot': 'shutdown -r now',}
         
         return systemctl
-    
+
+    # Just end the initialisation phase with latest value initialized
+    def _last_init(self):
+        fh = open(SylepsConsole.version_file, 'r')
+        self.version = fh.readline().strip()
+        self.peer_version = fh.readline().strip()
+        fh.close()
+        self.component = SylepsConsole.config.get_param('component')
+        self.peer_component = SylepsConsole.config.get_param('peer_component')
+
     def _update_versions(self):
-        # Just end the initialisation phase with latest value initialized
-        def _last_init():
-            fh = open(version_file, 'r')
-            self.version = fh.readline().strip()
-            self.peer_version = fh.readline().strip()
-            fh.close()
-            self.component = SylepsConsole.config.get_param('component')
-            self.peer_component = SylepsConsole.config.get_param('peer_component')
-            
         hosts_conf = conf.Conf("hosts")
-        version_file = os.path.join(SylepsConsole.var_dir, 'versions')
             
         # Ok ! Do we ran before and set up the file flag ?
         try:
-            os.stat(version_file)
-            _last_init()
+            os.stat(SylepsConsole.version_file)
+            self._last_init()
         except OSError:
             # NO !
             # Just going ask for the peer node so
@@ -192,7 +191,7 @@ class SylepsConsole:
             while 1:
                 retcode, input = version_run.form('Appliance Partner Node', 'Partner node AS or DB has to be up and installed.\nWhat are the partner node\'s ip address ?', fields)
                 if IP.is_legal(input[1]) and NetworkInfo.is_legal_hostname(input[0]):
-                    err = self.syleps.get_ora_versions(input[1])
+                    err = Syleps().get_ora_versions(input[1], SylepsConsole.version_file)
                     if err:
                         self._check_error(err)
                         break
@@ -203,17 +202,11 @@ class SylepsConsole:
                     peer_host = { 'hostname' : input[0],
                                 'ip': input[1],
                     }
-                    # Write host component
-                    hosts_conf.set_hosts(host['ip'], host['hostname'], [self.syleps.component], peer_host['hostname'], [self.syleps.peer_component], peer_host['ip'])
-                    SylepsConsole.config.set_param('component', self.syleps.component)
-                    SylepsConsole.config.set_param('peer_component', self.syleps.peer_component)                    
                     
-                    # Just store version info into the first flag file
-                    # So we can retrieve them later without going to ask the peer node.
-                    fh = open(version_file, 'w')
-                    fh.write("%s\n%s\n" % (self.syleps.version, self.syleps.peer_version))
-                    fh.close()
-                    _last_init()
+                    self._last_init()
+                    
+                    # Write host component
+                    hosts_conf.set_hosts(host['ip'], host['hostname'], [self.component], peer_host['hostname'], [self.peer_component], peer_host['ip'])
                     break
                 else:
                     version_run.msgbox('Error', 'Invalid IP address or hostname')
@@ -721,7 +714,7 @@ class SylepsConsole:
             
             if self.console.yesno('Do you want to change SU DB user\'s password (needed if you modified Syleps compliant hostname or alias)?', 30, 45) == self.OK:
                 # Change Syleps ux user password as it rely on hostname.
-                err = self.syleps.change_password(hostname, aliases)
+                err = Syleps().change_password(hostname, aliases)
                 self._check_error(err)
             
             break
@@ -827,9 +820,12 @@ class SylepsConsole:
             self.default_nic = self.config.get_param('default_nic')
             return "networking"
         
+            
         # if no Oracle versions set
-        if hasattr(self, 'version'):
-            #display usage
+        #display usage
+        try:
+            os.stat(SylepsConsole.version_file)
+            self._last_init()
             ipaddr = SysInterfaceInfo(ifname).get_ipconf()[0]
             hostname = self.NetworkInfo.hostname
     
@@ -846,7 +842,7 @@ class SylepsConsole:
     
             if retcode is not self.OK:
                 self.running = False
-        else:
+        except OSError:
             self.console.msgbox('Notice',
                                 'Your installation doesn\'t have Oracle versions set.\nMay be, it is your first launch, please finish your installation, then use "Versions" menu to update informations')
             return default_return_value
