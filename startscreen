@@ -219,7 +219,7 @@ class SylepsConsole:
         try:
             uuid = file(conf.path('validated'), 'r').readline()
         except:
-            raise Error('This VM has never been validated')
+            self._check_error('This VM has never been validated by Syleps SIC.\nPlease contact them to validate this installation, thanks.')
 
         return "%s-%s-%s" % (self.component, fd, uuid)
 
