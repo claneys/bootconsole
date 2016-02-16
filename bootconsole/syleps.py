@@ -165,7 +165,7 @@ class Syleps:
                 if filee == file2find and not re.search(excludepattern, root):
                     return os.path.join(root, file2find)
                 
-        return "Error: %s File not found, or wrong user selected!\nCheck your bootconsole configuration." % file2find
+        return "Error: '%s' File not found, or wrong user '%s' selected!\nCheck your bootconsole configuration." % (file2find, user)
 
     @staticmethod
     def _check_ret(ret):
