@@ -712,7 +712,7 @@ class SylepsConsole:
                 err = hosts_conf.set_hosts(ip, hostname, aliases, peer_hostname, peer_aliases, peer_ip)
             self._check_error(err)
             
-            if self.console.yesno('Do you want to change SU DB user\'s password (needed if you modified Syleps compliant hostname or alias)?', 30, 45) == self.OK:
+            if self.console.yesno('Do you want to change SU DB user\'s password ?\nNeeded if you modified Syleps compliant hostname or alias (ie: CCCSSSdbsup).', 30, 45) == self.OK:
                 # Change Syleps ux user password as it rely on hostname.
                 err = Syleps().change_password(hostname, aliases)
                 self._check_error(err)
