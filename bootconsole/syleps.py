@@ -44,23 +44,11 @@ class Syleps:
                             'net_interface' : '%s/ifcfg-%s' % (ifutil.NetworkSettings.IFCFG_DIR, bootconsole_conf.get_param('default_nic')),
         }
         
-    def get_ora_versions(self, peer_host, vfile):
-        OracleProductsInstalled = self._getOracleProducts(peer_host)
-        # Check there is no errors
-        if isinstance(OracleProductsInstalled, str):
-            return OracleProductsInstalled
+        self._last_init(bootconsole_conf.get_param('component'))
         
-        version = re.sub(r'\s+', ' ',OracleProductsInstalled[0][0])
-        peer_version = re.sub(r'\s+', ' ', OracleProductsInstalled[1][0])
-        
-        # Just store version info into the first flag file
-        # So we can retrieve them later without going to ask the peer node.
-        fh = open(vfile, 'w')
-        fh.write("%s\n%s\n" % (version, peer_version))
-        fh.close()
-        
+    def _last_init(self, component):
         # Only process first product installed as we install one product by machine
-        if 'Database' in OracleProductsInstalled[0][0]:
+        if 'Database' in component or 'DB' in component:
             component = 'DB'
             peer_component = 'AS'
             self.su_user = self.suux_user
@@ -94,7 +82,26 @@ class Syleps:
                 self.conf_files['suas_profile_ora'] = os.path.expanduser('~'+self.su_user+'/.profile.ora')
             if self.define_conf_file('suas_profile_std'):
                 self.conf_files['suas_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
-            
+                
+        return (component, peer_component)
+    
+    def get_ora_versions(self, peer_host, vfile):
+        OracleProductsInstalled = self._getOracleProducts(peer_host)
+        # Check there is no errors
+        if isinstance(OracleProductsInstalled, str):
+            return OracleProductsInstalled
+        
+        version = re.sub(r'\s+', ' ',OracleProductsInstalled[0][0])
+        peer_version = re.sub(r'\s+', ' ', OracleProductsInstalled[1][0])
+        
+        # Just store version info into the first flag file
+        # So we can retrieve them later without going to ask the peer node.
+        fh = open(vfile, 'w')
+        fh.write("%s\n%s\n" % (version, peer_version))
+        fh.close()
+        
+        component, peer_component = self._last_init(OracleProductsInstalled[0][0])
+        
         # Rewrite bootconsole configuration
         self.bootconsole_conf.change_param('component', component)
         self.bootconsole_conf.change_param('peer_component', peer_component)
