@@ -267,7 +267,7 @@ class Syleps:
         try:
             executil.system('/bin/su '+ self.su_user +' - -c "~'+self.su_user+'/run/bin/change_hostname.sh" > /dev/null 2>&1')
         except executil.ExecError:
-            return 'Error: Can\'t execute change_hostname.sh script.\nMay be user %s doesn\'t exists or script is missing.\nSU password has not been changed.' % self.su_user
+            return 'Error: When execute change_hostname.sh script.\nMay be user %s doesn\'t exists or wrong component configured or script is missing.\n Execute it manually and see what\'s going wrong.\nSU password has not been changed.' % self.su_user
 
     def change_system_passwd(self, password):
         cmd_sys = subprocess.Popen(['/usr/bin/passwd', '--stdin', self.su_user], stdin=subprocess.PIPE, stdout=subprocess.PIPE)

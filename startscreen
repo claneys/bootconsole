@@ -112,6 +112,7 @@ class SylepsConsole:
     var_dir = config.get_param('var_dir')
     ifnames = NetworkInfo.get_filtered_ifnames()
     version_file = os.path.join(var_dir, 'versions')
+    Syleps_ = Syleps()
 
     def __init__(self, advanced_enabled=True):
         # Console attribute
@@ -191,7 +192,7 @@ class SylepsConsole:
             while 1:
                 retcode, input = version_run.form('Appliance Partner Node', 'Partner node AS or DB has to be up and installed.\nWhat are the partner node\'s ip address ?', fields)
                 if IP.is_legal(input[1]) and NetworkInfo.is_legal_hostname(input[0]):
-                    err = Syleps().get_ora_versions(input[1], SylepsConsole.version_file)
+                    err = SylepsConsole.Syleps_.get_ora_versions(input[1], SylepsConsole.version_file)
                     if err:
                         self._check_error(err)
                         break
@@ -718,7 +719,7 @@ class SylepsConsole:
             
             if self.console.yesno('Do you want to change SU DB user\'s password ?\nNeeded if you modified mandatory Syleps compliant hostname or alias (ie: CCCSSSdbsup).', 30, 45) == self.OK:
                 # Change Syleps ux user password as it rely on hostname.
-                err = Syleps().change_password(hostname, aliases)
+                err = SylepsConsole.Syleps_.change_password(hostname, aliases)
                 self._check_error(err)
             
             break
