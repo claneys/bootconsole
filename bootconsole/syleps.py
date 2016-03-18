@@ -141,8 +141,8 @@ class Syleps:
         end_pattern = 'There are [0-9]+ products installed in this Oracle Home'
         awk_cmd = 'awk \'/%s/{f=1;next} /%s/ {f=0} f && ! /^$/ && ! /Example/ {print}\'' % (begin_pattern, end_pattern)
         
-        products = [ executil.getoutput('su - %s -c "%s lsinv" | %s' % (users[0], opatch_cmd, awk_cmd)).split('\n'),
-                    executil.getoutput('ssh -o StrictHostKeyChecking=no root@%s "su - %s -c \'opatch lsinv\' | %s"' % (peer_host, users[1], awk_cmd)).split('\n')
+        products = [ executil.getoutput_popen('su - %s -c "%s lsinv" | %s' % (users[0], opatch_cmd, awk_cmd), input='\n\n').split('\n'),
+                    executil.getoutput_popen('ssh -o StrictHostKeyChecking=no root@%s "su - %s -c \'opatch lsinv\' | %s"' % (peer_host, users[1], awk_cmd), input='\n\n').split('\n')
                    ]
         return products
         
