@@ -63,7 +63,7 @@ network=$(grep '# Syleps configuration' %{_sysconfdir}/sysconfig/network)
 [ -z "$ifcfg" ] && sed -i'.rpmsave' "1i# Syleps configuration\n# Don't modify this part \!" %{_sysconfdir}/sysconfig/network-scripts/ifcfg-${netint}
 [ -z "$network" ] && sed -i'.rpmsave' "1i# Syleps configuration\n# Don't modify this part \!" %{_sysconfdir}/sysconfig/network
 # Update conf usage.txt
-template_v=$(grep "Template version :" ${_sysconfdir}/${name}/usage.txt.rpmsave)
+template_v=$(grep "Template version :" %{_sysconfdir}/%{name}/usage.txt.rpmsave)
 sed -i -r -e 's/^Oracle Database version : .*$/$local_version/' -e 's/^Oracle Forms and Report version : .*$/$peer_version/' -e 's/^Template version : .*$/'$template_v'/' ${_sysconfdir}/${name}/usage.txt
 exit 0
 
