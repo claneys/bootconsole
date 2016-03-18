@@ -1,6 +1,6 @@
 %define name bootconsole
-%define version 1.24
-%define release 5.el6
+%define version 1.33
+%define release 6.el6
 
 Summary: Boot Ncurses Console configuration
 Name: %{name}
@@ -8,8 +8,6 @@ Version: %{version}
 Release: %{release}
 Source0: %{name}-%{version}.tar.gz
 License: GPL
-Source1: %{name}.conf
-Source2: start-ttys.override
 Group: Development/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Prefix: %{_prefix}
@@ -40,38 +38,45 @@ The basic tasks that the user may perform include:
 python setup.py build
 
 %install
-python setup.py install --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES
-%{__install} -D -m0644 %{SOURCE1} %{buildroot}%{_sysconfdir}/init/%{name}.conf
-%{__install} -D -m0644 %{SOURCE2} %{buildroot}%{_sysconfdir}/init/start-ttys.override
+python setup.py install --root=$RPM_BUILD_ROOT
+install -D packaging/redhat/getty@tty1.service ${RPM_BUILD_ROOT}/etc/systemd/system/getty@tty1.service
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%files -f INSTALLED_FILES
+%files -n bootconsole
 %defattr(-,root,root)
 %config %{_sysconfdir}/%{name}/%{name}.conf
 %config %{_sysconfdir}/%{name}/usage.txt
-%config %{_sysconfdir}/init/%{name}.conf
-%config %{_sysconfdir}/init/start-ttys.override
-%{_var}/lib/bootconsole
+%config %{_sysconfdir}/systemd/system/getty@tty1.service
+%{_bindir}/sic_seal
+%{_bindir}/startscreen
+%{python_sitelib}/*
+/var/lib/bootconsole
 
 %post
+# Grab first ethernet interface
+netint=$(ls -1 /sys/class/net/ | grep -v lo | head -n1)
 # Add Header in bootconsole managed files
-ifcfg=$(grep 'SYLEPS CONFCONSOLE' %{_sysconfdir}/sysconfig/network-scripts/ifcfg-eth0)
-network=$(grep 'SYLEPS CONFCONSOLE' %{_sysconfdir}/sysconfig/network)
-inittab=$(grep 'startscreen' %{_sysconfdir}/inittab)
-[ -z "$ifcfg" ] && sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" %{_sysconfdir}/sysconfig/network-scripts/ifcfg-eth0
-[ -z "$network" ] && sed -i'.rpmsave' "1i# SYLEPS CONFCONSOLE\n# Don't modify this part \!" %{_sysconfdir}/sysconfig/network
+ifcfg=$(grep '# Syleps configuration' %{_sysconfdir}/sysconfig/network-scripts/ifcfg-${netint})
+network=$(grep '# Syleps configuration' %{_sysconfdir}/sysconfig/network)
+[ -z "$ifcfg" ] && sed -i'.rpmsave' "1i# Syleps configuration\n# Don't modify this part \!" %{_sysconfdir}/sysconfig/network-scripts/ifcfg-${netint}
+[ -z "$network" ] && sed -i'.rpmsave' "1i# Syleps configuration\n# Don't modify this part \!" %{_sysconfdir}/sysconfig/network
+# Update conf usage.txt
+template_v=$(grep "Template version :" ${_sysconfdir}/${name}/usage.txt.rpmsave)
+sed -i -r -e 's/^Oracle Database version : .*$/$local_version/' -e 's/^Oracle Forms and Report version : .*$/$peer_version/' -e 's/^Template version : .*$/'$template_v'/' ${_sysconfdir}/${name}/usage.txt
 exit 0
 
 %postun
+# Grab first ethernet interface
+netint=$(ls -1 /sys/class/net/ | grep -v lo | head -n1)
 # $1 = 0 uninstall, $1 = 1 upgrade
 if [ "$1" = "0" ]
 then
     # Remove Header in bootconsole managed files
-    sed -i -e "/# SYLEPS CONFCONSOLE/d" -e "/# Don't modify this part \!/d" %{_sysconfdir}/sysconfig/network-scripts/ifcfg-eth0
-    sed -i -e "/# SYLEPS CONFCONSOLE/d" -e "/# Don't modify this part \!/d" %{_sysconfdir}/sysconfig/network
-    sed -i -e "/# SYLEPS CONFCONSOLE/d" -e "/# Don't modify this part \!/d" %{_sysconfdir}/resolv.conf
+    sed -i -e "/# Syleps configuration/d" -e "/# Don't modify this part \!/d" %{_sysconfdir}/sysconfig/network-scripts/ifcfg-${netint}
+    sed -i -e "/# Syleps configuration/d" -e "/# Don't modify this part \!/d" %{_sysconfdir}/sysconfig/network
+    sed -i -e "/# Syleps configuration/d" -e "/# Don't modify this part \!/d" %{_sysconfdir}/resolv.conf
     # And validated file
     if [ -f %{_sysconfdir}/bootconsole/validated ]
     then

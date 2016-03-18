@@ -1,6 +1,6 @@
 %define name bootconsole
 %define version 1.33
-%define release 10.el7
+%define release 11.el7
 
 Summary: Boot Ncurses Console configuration
 Name: %{name}
@@ -60,7 +60,6 @@ netint=$(ls -1 /sys/class/net/ | grep -v lo | head -n1)
 # Add Header in bootconsole managed files
 ifcfg=$(grep '# Syleps configuration' %{_sysconfdir}/sysconfig/network-scripts/ifcfg-${netint})
 network=$(grep '# Syleps configuration' %{_sysconfdir}/sysconfig/network)
-inittab=$(grep 'startscreen' %{_sysconfdir}/inittab)
 [ -z "$ifcfg" ] && sed -i'.rpmsave' "1i# Syleps configuration\n# Don't modify this part \!" %{_sysconfdir}/sysconfig/network-scripts/ifcfg-${netint}
 [ -z "$network" ] && sed -i'.rpmsave' "1i# Syleps configuration\n# Don't modify this part \!" %{_sysconfdir}/sysconfig/network
 exit 0
