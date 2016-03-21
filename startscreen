@@ -440,14 +440,14 @@ class SylepsConsole:
         input = [self.ip, self.netmask, self.gateway, self.search_domain]
         input.extend(self.nameservers)
         # include minimum 2 nameserver fields and 1 blank one
-        if len(input) < 4:
+        while len(input) < 6:
             input.append('')
 
         if input[-1]:
             input.append('')
 
         field_width = 30
-        field_limit = 15
+        field_limit = 30
 
         while 1:
             fields = [
