@@ -97,10 +97,13 @@ class NetworkSettings:
                   "IPADDR=%s" % addr,
                   "NETMASK=%s" % netmask,
                   "GATEWAY=%s" % gateway,
-                  "DNS1=%s" % nameservers[0],
-                  "DNS2=%s" % nameservers[1],
                   "DOMAIN=%s" % search_domain,
                   "ONBOOT=yes"]
+
+        counter = 1
+        for nameserver in nameservers:
+            ifconf.append("DNS%d=%s" % (counter, nameservers[counter-1]))
+            counter = counter + 1
         
         networkconf = ["NETWORKING=yes"]
         

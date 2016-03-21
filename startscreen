@@ -454,10 +454,11 @@ class SylepsConsole:
                 ("Netmask", input[1], field_width, field_limit),
                 ("Default Gateway", input[2], field_width, field_limit),
                 ("Search Domain", input[3], field_width, field_limit),
-                ("Name Server #1", input[4], field_width, field_limit),
-                ("Name Server #2", input[5], field_width, field_limit),
             ]
 
+            for i in range(len(input[4:])):
+                fields.append(("Name Server", input[4+i], field_width, field_limit))
+                
             text = "Static IP configuration (%s)" % self.ifname
             retcode, input = self.console.form("Network settings", text, fields)
 
