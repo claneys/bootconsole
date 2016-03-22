@@ -107,7 +107,7 @@ class NetworkSettings:
         
         networkconf = ["NETWORKING=yes"]
         
-        resolvconf = []
+        resolvconf = ["search %s" % search_domain]
         if nameservers:
             for nameserver in nameservers:
                 resolvconf.append("nameserver %s" % nameserver)

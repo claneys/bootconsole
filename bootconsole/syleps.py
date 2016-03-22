@@ -51,22 +51,29 @@ class Syleps:
         if 'Database' in component or 'DB' in component:
             component = 'DB'
             peer_component = 'AS'
+            if 'as_tnsnames' in self.conf_files:
+                del self.conf_files['as_tnsnames']
+                del self.conf_files['as_formsweb']
+                del self.conf_files['as_dads']
             self.su_user = self.suux_user
             if self.define_conf_file('db_tnsnames'):
                 self.conf_files['db_tnsnames'] = Syleps._find_file_in_homedir(self.db_user, 'tnsnames.ora')
             if self.define_conf_file('db_listener'):
                 self.conf_files['db_listener'] = Syleps._find_file_in_homedir(self.db_user, 'listener.ora')
-            if self.define_conf_file('suux_profile'):
+            if self.define_conf_file('su_profile'):
                 self.conf_files['suux_profile'] = os.path.expanduser('~'+self.su_user+'/.profile')
-            if self.define_conf_file('suux_profile_spec'):
+            if self.define_conf_file('su_profile_spec'):
                 self.conf_files['suux_profile_spec'] = os.path.expanduser('~'+self.su_user+'/.profile.spec')
-            if self.define_conf_file('suux_profile_ora'):
+            if self.define_conf_file('su_profile_ora'):
                 self.conf_files['suux_profile_ora'] = os.path.expanduser('~'+self.su_user+'/.profile.ora')
-            if self.define_conf_file('suux_profile_std'):
+            if self.define_conf_file('su_profile_std'):
                 self.conf_files['suux_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
         else:
             component = 'AS'
             peer_component = 'DB'
+            if 'db_tnsnames' in self.conf_files:
+                del self.conf_files['db_tnsnames']
+                del self.conf_files['db_listener']
             self.su_user = self.suas_user
             if self.define_conf_file('as_tnsnames'):
                 self.conf_files['as_tnsnames'] = Syleps._find_file_in_homedir(self.as_user, 'tnsnames.ora')
@@ -74,14 +81,14 @@ class Syleps:
                 self.conf_files['as_formsweb'] = Syleps._find_file_in_homedir(self.as_user, 'formsweb.cfg')
             if self.define_conf_file('as_dads'):
                 self.conf_files['as_dads'] = Syleps._find_file_in_homedir(self.as_user, 'dads.conf', exclude='FRHome')
-            if self.define_conf_file('suas_profile'):
-                self.conf_files['suas_profile'] = os.path.expanduser('~'+self.su_user+'/.profile')
-            if self.define_conf_file('suas_profile_spec'):
-                self.conf_files['suas_profile_spec'] = os.path.expanduser('~'+self.su_user+'/.profile.spec')
-            if self.define_conf_file('suas_profile_ora'):
-                self.conf_files['suas_profile_ora'] = os.path.expanduser('~'+self.su_user+'/.profile.ora')
-            if self.define_conf_file('suas_profile_std'):
-                self.conf_files['suas_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
+            if self.define_conf_file('su_profile'):
+                self.conf_files['su_profile'] = os.path.expanduser('~'+self.su_user+'/.profile')
+            if self.define_conf_file('su_profile_spec'):
+                self.conf_files['su_profile_spec'] = os.path.expanduser('~'+self.su_user+'/.profile.spec')
+            if self.define_conf_file('su_profile_ora'):
+                self.conf_files['su_profile_ora'] = os.path.expanduser('~'+self.su_user+'/.profile.ora')
+            if self.define_conf_file('su_profile_std'):
+                self.conf_files['su_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
                 
         return (component, peer_component)
         

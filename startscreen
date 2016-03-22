@@ -355,8 +355,8 @@ class SylepsConsole:
 
     def _get_ifconfmenu(self):
         menu = []
-        menu.append(("DHCP", "Configure networking automatically"))
         menu.append(("StaticIP", "Configure networking manually"))
+        menu.append(("DHCP", "Configure networking automatically"))
 
         if self.default_nic and self.ifname != self.default_nic and \
            len(self.ifnames) > 1 and \
