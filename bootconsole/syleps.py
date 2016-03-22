@@ -84,7 +84,41 @@ class Syleps:
                 self.conf_files['suas_profile_std'] = os.path.expanduser('~'+self.su_user+'/.profile.std')
                 
         return (component, peer_component)
+        
+    def define_conf_file(self, conf_file):
+        '''
+        Return true when file has to be defined and
+        False if it is already defined
+        '''
+        if self.bootconsole_conf.get_param(conf_file) == []:
+            return True
+        else:
+            self.conf_files[conf_file] = self.bootconsole_conf.get_param(conf_file)
+            return False
     
+    def get_SU_version(self, peer_host, component):
+        remote = 'ssh -o StrictHostKeyChecking=no root@%s "' % peer_host
+        pre_cmd = 'su - %s -c \'' % self.suux_user
+        ending = '"'
+        SU_version_cmd = 'sqlplus $ORACLE_USER/$ORACLE_PASSWD << EOF | grep -E "^[0-9]+"\nselect su_bas_get_version_std from dual;\nEOF\n\''
+        SU_env_cmd = 'sqlplus $ORACLE_USER/$ORACLE_PASSWD << EOF | grep -E "^Config"\nselect lib_cfg_appli from su_cfg_appli where etat_actif=\'1\';\nEOF\n\''
+        
+        try:
+            if component == 'DB':
+                SU = { 'version' : executil.getoutput('%s%s' % (pre_cmd,SU_version_cmd)),
+                       'env' : executil.getoutput('%s%s' % (pre_cmd,SU_env_cmd)),
+                }
+            else:
+                SU = { 'version' : executil.getoutput('%s%s%s%s' % (remote,pre_cmd,SU_version_cmd,ending)),
+                       'env' : executil.getoutput('%s%s%s%s' % (remote,pre_cmd,SU_env_cmd,ending)),
+                }
+        except executil.ExecError:
+            SU = { 'version' : 'No SU detected',
+                   'env' : 'No SU detected',
+            }
+
+        return SU
+        
     def get_ora_versions(self, peer_host, vfile):
         OracleProductsInstalled = self._getOracleProducts(peer_host)
         # Check there is no errors
@@ -94,13 +128,15 @@ class Syleps:
         version = re.sub(r'\s+', ' ',OracleProductsInstalled[0][0])
         peer_version = re.sub(r'\s+', ' ', OracleProductsInstalled[1][0])
         
+        component, peer_component = self._last_init(OracleProductsInstalled[0][0])
+        
+        SU = self.get_SU_version(peer_host, component)
+        
         # Just store version info into the first flag file
         # So we can retrieve them later without going to ask the peer node.
         fh = open(vfile, 'w')
-        fh.write("%s\n%s\n" % (version, peer_version))
+        fh.write("%s\n%s\n%s\n%s" % (version, peer_version, SU['version'], SU['env']))
         fh.close()
-        
-        component, peer_component = self._last_init(OracleProductsInstalled[0][0])
         
         # Rewrite bootconsole configuration
         self.bootconsole_conf.change_param('component', component)
@@ -112,17 +148,6 @@ class Syleps:
             self.bootconsole_conf.change_param(label, conf_file)
         
         self.bootconsole_conf.write_conf()
-            
-    def define_conf_file(self, conf_file):
-        '''
-        Return true when file has to be defined and
-        False if it is already defined
-        '''
-        if self.bootconsole_conf.get_param(conf_file) == []:
-            return True
-        else:
-            self.conf_files[conf_file] = self.bootconsole_conf.get_param(conf_file)
-            return False
             
     def _getOracleProducts(self, peer_host=None):
 

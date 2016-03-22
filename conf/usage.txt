@@ -4,7 +4,8 @@ Template version : [as|db]YYMMDD
 Appliance S/N : $serial
 $local_version
 $peer_version
-Sydel Univers version : 12.2
+Sydel Univers version : $su_version
+Sydel Univers environment : $su_env
 
 Server informations :
 

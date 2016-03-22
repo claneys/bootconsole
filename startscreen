@@ -170,10 +170,13 @@ class SylepsConsole:
         fh = open(SylepsConsole.version_file, 'r')
         self.version = fh.readline().strip()
         self.peer_version = fh.readline().strip()
+        self.su_version = fh.readline().strip()
+        self.su_env = fh.readline().strip()
         fh.close()
+        
         self.component = SylepsConsole.config.get_param('component')
         self.peer_component = SylepsConsole.config.get_param('peer_component')
-
+        
     def _update_versions(self):
         hosts_conf = conf.Conf("hosts")
             
@@ -836,7 +839,7 @@ class SylepsConsole:
     
             #backwards compatible - use usage.txt if it exists
             t = file(conf.path("usage.txt"), 'r').read()
-            text = Template(t).substitute(serial=self._get_serial(), hostname=hostname, ipaddr=ipaddr, local_version=self.version, peer_version=self.peer_version)
+            text = Template(t).substitute(serial=self._get_serial(), hostname=hostname, ipaddr=ipaddr, local_version=self.version, peer_version=self.peer_version, su_version=self.su_version, su_env=self.su_env)
     
             text += "\n" * (self.height - len(text.splitlines()) - 7)
             text += "\Z3                            Syleps SU Appliance\n"
