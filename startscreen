@@ -213,7 +213,8 @@ class SylepsConsole:
                     aliases.append(self.component)
                     peer_aliases = hosts_conf.get_host(self.peer_component)['aliases'].split(',')
                     peer_aliases.append(self.peer_component)
-                    
+                    # Write host component
+                    # hosts_conf.set_hosts(host['ip'], host['hostname'], aliases, peer_host['hostname'], peer_aliases, peer_host['ip'])
                     break
                 else:
                     version_run.msgbox('Error', 'Invalid IP address or hostname')

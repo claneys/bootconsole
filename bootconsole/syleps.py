@@ -104,21 +104,14 @@ class Syleps:
             return False
     
     def get_SU_version(self, peer_host, component):
-        remote = 'ssh -o StrictHostKeyChecking=no root@%s "' % peer_host
-        pre_cmd = 'su - %s -c \'' % self.suux_user
-        ending = '"'
+        pre_cmd = 'su - %s -c \'' % self.su_user
         SU_version_cmd = 'sqlplus $ORACLE_USER/$ORACLE_PASSWD << EOF | grep -E "^[0-9]+"\nselect su_bas_get_version_std from dual;\nEOF\n\''
         SU_env_cmd = 'sqlplus $ORACLE_USER/$ORACLE_PASSWD << EOF | grep -E "^Config"\nselect lib_cfg_appli from su_cfg_appli where etat_actif=\'1\';\nEOF\n\''
         
         try:
-            if component == 'DB':
-                SU = { 'version' : executil.getoutput('%s%s' % (pre_cmd,SU_version_cmd)),
-                       'env' : executil.getoutput('%s%s' % (pre_cmd,SU_env_cmd)),
-                }
-            else:
-                SU = { 'version' : executil.getoutput('%s%s%s%s' % (remote,pre_cmd,SU_version_cmd,ending)),
-                       'env' : executil.getoutput('%s%s%s%s' % (remote,pre_cmd,SU_env_cmd,ending)),
-                }
+            SU = { 'version' : executil.getoutput('%s%s' % (pre_cmd,SU_version_cmd)),
+                   'env' : executil.getoutput('%s%s' % (pre_cmd,SU_env_cmd)),
+            }
         except executil.ExecError:
             SU = { 'version' : 'No SU detected',
                    'env' : 'No SU detected',
