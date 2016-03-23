@@ -1,6 +1,6 @@
 %define name bootconsole
 %define version 1.36
-%define release 12.el7
+%define release 13.el7
 
 Summary: Boot Ncurses Console configuration
 Name: %{name}
