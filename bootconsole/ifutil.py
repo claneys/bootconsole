@@ -96,9 +96,12 @@ class NetworkSettings:
                   "BOOTPROTO=static",
                   "IPADDR=%s" % addr,
                   "NETMASK=%s" % netmask,
-                  "GATEWAY=%s" % gateway,
-                  "DOMAIN=%s" % search_domain,
                   "ONBOOT=yes"]
+
+        if gateway:
+            ifconf.append("GATEWAY=%s" % gateway)
+        if search_domain:
+            ifconf.append("DOMAIN=%s" % search_domain)
 
         counter = 1
         for nameserver in nameservers:
